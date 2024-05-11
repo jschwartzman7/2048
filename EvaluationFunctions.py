@@ -1,4 +1,4 @@
-import Search
+import SearchAgents
 import math
 import copy
 
@@ -43,7 +43,7 @@ tileWeights2 = {
     }
 
 def getMergeInfo(board):
-    legalMoves = Search.getLegalMoves(board)
+    legalMoves = SearchAgents.getLegalMoves(board)
     sumNumMerges = 0
     sumMergeValues = 0
     for move in legalMoves:

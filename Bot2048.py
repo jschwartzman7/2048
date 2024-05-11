@@ -1,5 +1,11 @@
 import selenium
 from selenium import webdriver
+
+
+from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
+
+
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions as EC
@@ -11,25 +17,27 @@ from bs4 import BeautifulSoup
 import time
 import math
 import copy
-import Search
-from Search import expectimaxSearch
+import SearchAgents
+from SearchAgents import expectimaxSearch
 
 
 class Bot2048:
     
     def __init__(self, strategy):
-        options = Options()
-        options.page_load_strategy = 'eager'
-        self.driver = webdriver.Chrome(options=options)
+        optionsC = Options()
+        optionsC.page_load_strategy = 'eager'
+        #self.driver = webdriver.Chrome()
+        self.driver = webdriver.Chrome(options=optionsC, service=ChromeService())
         self.actions = ActionChains(self.driver)
         self.strategy = strategy
         self.maxTile = 0
-        self.board = [
+        self.board = {i: 0 for i in range(16)}
+        '''self.board = [
             [' ', ' ', ' ', ' '],
             [' ', ' ', ' ', ' '],
             [' ', ' ', ' ', ' '],
             [' ', ' ', ' ', ' ']
-        ]
+        ]'''
 
     def fillBoard(self):
             HTML = self.driver.page_source
@@ -85,7 +93,7 @@ class Bot2048:
         while True:
             resetBoard(self.board)
             self.fillBoard()
-            while len(Search.getLegalMoves(self.board)) > 0:
+            while len(SearchAgents.getLegalMoves(self.board)) > 0:
                 if self.maxTile == 2048 and not won:
                     time.sleep(2)
                     won = True
@@ -105,6 +113,23 @@ class Bot2048:
 
     
 def printBoard(board):
+    '''
+    0  | 1  | 2  | 3
+    4  | 5  | 6  | 7
+    8  | 9  | 10 | 11
+    12 | 13 | 14 | 15
+    
+    '''
+    maxSize = len(str(max(board.values())))
+    for idx, tileValue in board.items():
+        if idx+1 % 4 == 0:
+            print(board[idx])
+            print((maxSize*4+3)*'-')
+        else:
+            print(board[idx], (maxSize-len(str(board[row][col])))*' ', "|", end="")
+
+
+
     maxSize = 1
     for i in range(4):
         for j in range(4):
@@ -122,9 +147,10 @@ def printBoard(board):
             print((maxSize*4+3)*'-')
 
 def resetBoard(board):
+    board = {i: 0 for i in range(16)}
     for i in range(4):
         for j in range(4):
-            board[i][j] = ' '
+            board[i][j] = 0
 
     
 

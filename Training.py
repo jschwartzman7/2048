@@ -1,6 +1,6 @@
 import random
-import TestCases
-import Search
+import TestSimulations
+import SearchAgents
 import EvaluationFunctions
 from EvaluationFunctions import evaluate
 '''
@@ -48,10 +48,10 @@ def evolutionSearch():
         print("Pass ", i+1)
         scoresMap = dict()
         for weightVector in randomWeightsVectors:
-            strategy = Search.reflexSearch(evaluate, weightVector)
+            strategy = SearchAgents.reflexSearch(evaluate, weightVector)
             trialScores = []
             for j in range(numTestsPerWeightVector):
-                maxTile = TestCases.simulateGame(strategy)
+                maxTile = TestSimulations.simulateGame(strategy)
                 trialScores.append(maxTile)
             scoresMap[(sum(trialScores)/numTestsPerWeightVector)] = weightVector
         # select best candidates
@@ -82,7 +82,7 @@ def evolutionSearch():
 
 def gridSearch(numIntervals):
     #features: numEmpty, mergeValues, distanceToCenter, sd
-    strategy = Search.reflexSearch(EvaluationFunctions.evaluate, [1, 1, 1, 1])
+    strategy = SearchAgents.reflexSearch(EvaluationFunctions.evaluate, [1, 1, 1, 1])
     avgMaxTiles = dict()
     for h in [x/numIntervals for x in range(0, numIntervals)]:
         print(h)
@@ -91,7 +91,7 @@ def gridSearch(numIntervals):
                 for k in [x/numIntervals for x in range(0, numIntervals)]:
                     weightVector = [h, i, j, k ]
                     strategy.weights = weightVector
-                    avgMaxTile = TestCases.runSimulations([strategy], 7)
+                    avgMaxTile = TestSimulations.runSimulations([strategy], 7)
                     avgMaxTiles[avgMaxTile] = weightVector
                     #if curMaxTile > maxTile:
                         #maxTile = curMaxTile
@@ -101,7 +101,7 @@ def gridSearch(numIntervals):
 
 def randomSearch(numIntervals):
     #features: numEmpty, mergeValues, distanceToCenter, sd
-    strategy = Search.reflexSearch(EvaluationFunctions.evaluate, [1, 1, 1, 1])
+    strategy = SearchAgents.reflexSearch(EvaluationFunctions.evaluate, [1, 1, 1, 1])
     avgMaxTiles = dict()
     for h in [random.random() for x in range(0, numIntervals)]:
         print(h)
@@ -110,19 +110,19 @@ def randomSearch(numIntervals):
                 for k in [random.random() for x in range(-numIntervals, 0)]:
                     weightVector = [h, i, j, k]
                     strategy.weights = weightVector
-                    avgMaxTile = TestCases.runSimulations([strategy], 10)
+                    avgMaxTile = TestSimulations.runSimulations([strategy], 10)
                     avgMaxTiles[avgMaxTile] = weightVector
     maxTilesList = list(avgMaxTiles.keys())
     bestWeights = avgMaxTiles[max(maxTilesList)]
     print(max(maxTilesList), bestWeights)
 
 def constantSearch(numIntervals):
-    strategy = Search.reflexSearch(EvaluationFunctions.evaluate,[.5, .5, .5, .5])
+    strategy = SearchAgents.reflexSearch(EvaluationFunctions.evaluate,[.5, .5, .5, .5])
     for round in range(2*len(strategy.weights)):
         averageScores = dict()
         for i in [x/numIntervals for x in range(0, numIntervals)]:
             strategy.weights[round%len(strategy.weights)] = i
-            averageScore = TestCases.runSimulations([strategy], 10)
+            averageScore = TestSimulations.runSimulations([strategy], 10)
             averageScores[averageScore] = i
         averageScoresList = list(averageScores.keys())
         newWeight = averageScores[max(averageScoresList)]
