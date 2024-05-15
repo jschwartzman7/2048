@@ -1,204 +1,146 @@
 from selenium.webdriver.common.keys import Keys
-import Bot2048
-import EvaluationFunctions
 import copy
 import math
 import random
 
-def canMoveDown(board):
-    for col in range(4):
-        for row in range(1, 4):
-            if board[row][col] == ' ' and board[row-1][col] != ' ':
-                return True
-            elif board[row][col] == board[row-1][col] and board[row][col] != ' ':
-                return True
-    return False
+class Search():
 
-def canMoveUp(board):
-    for col in range(4):
-        for row in range(1, 4):
-            if board[row][col] != ' ' and board[row-1][col] == ' ':
-                return True
-            elif board[row][col] == board[row-1][col] and board[row][col] != ' ':
-                return True
-    return False
+    def __init__(self, evaluationFunction=None):
+        self.evaluationFunction = evaluationFunction
 
-def canMoveRight(board):
-    for col in range(1, 4):
+
+    def canMoveDown(self, board):
+        for idx in range(0, 12):
+            if board[idx] != 0 and (board[idx+4] == 0 or board[idx+4] == board[idx]):
+                return True
+        return False
+
+    def canMoveUp(self, board):
+        for idx in range(4, 16):
+            if board[idx] != 0 and (board[idx-4] == 0 or board[idx-4] == board[idx]):
+                return True
+        return False
+
+    def canMoveRight(self, board):
+        for idx in range(16):
+            if (idx+1)%4 == 0:
+                continue
+            if board[idx] != 0 and (board[idx+1] == 0 or board[idx+1] == board[idx]):
+                return True
+        return False
+
+    def canMoveLeft(self, board):
+        for idx in range(16):
+                if idx%4 == 0:
+                    continue
+                if board[idx] != 0 and (board[idx-1] == 0 or board[idx-1] == board[idx]):
+                    return True
+        return False
+
+    def moveArrayLeft(self, arr): # Ex. [0, 4, 4, 8] -> [8, 8, 0, 0]
+        mergedIndices = set()
+        for i in range(1, len(arr)):
+            for j in range(i, 0, -1):
+                match arr[j-1], arr[j]:
+                    case x, 0:
+                        pass
+                    case 0, x:
+                        arr[j-1], arr[j] = arr[j], arr[j-1]
+                    case x, y if x == y and j-1 not in mergedIndices and j not in mergedIndices:
+                        arr[j-1], arr[j] = 2*arr[j-1], 0
+                        mergedIndices.add(j-1)
+                    case _:
+                        pass
+        return arr
+
+    def moveArrayRight(self, arr): # Ex. [0, 4, 4, 8] -> [0, 0, 8, 8]
+        mergedIndices = set()
+        for i in range(len(arr)-2, -1, -1):
+            for j in range(i, len(arr)-1):
+                match arr[j], arr[j+1]:
+                    case 0, x:
+                        pass
+                    case x, 0:
+                        arr[j], arr[j+1] = arr[j+1], arr[j]
+                    case x, y if x == y and j not in mergedIndices and j+1 not in mergedIndices:
+                        arr[j], arr[j+1] = 0, 2*arr[j+1]
+                        mergedIndices.add(j+1)
+                    case _:
+                        pass
+        return arr
+
+    def moveDown(self, board):
+        for column in range(4):
+            board[column::4] = self.moveArrayRight(board[column::4])
+
+
+    def moveUp(self, board):
+        for column in range(4):
+            board[column::4] = self.moveArrayLeft(board[column::4])
+
+    def moveRight(self, board):
         for row in range(4):
-            if board[row][col] == ' ' and board[row][col-1] != ' ':
-                return True
-            elif board[row][col] == board[row][col-1] and board[row][col] != ' ':
-                return True
-    return False
-
-def canMoveLeft(board):
-    for col in range(1, 4):
+            board[4*row : 4*row + 4] = self.moveArrayRight(board[4*row : 4*row + 4])
+       
+    def moveLeft(self, board):
         for row in range(4):
-            if board[row][col] != ' ' and board[row][col-1] == ' ':
-                return True
-            elif board[row][col] == board[row][col-1] and board[row][col] != ' ':
-                return True
-    return False
+            board[4*row : 4*row + 4] = self.moveArrayLeft(board[4*row : 4*row + 4])
 
-def moveDown(board):
-    mergedLocations = dict()
-    for col in range(4):
-        for row in [2, 1, 0]:
-            if board[row][col] != ' ':
-                checkRow = row + 1
-                while board[checkRow][col] == ' ':
-                    if checkRow+1 < 4:
-                        checkRow = checkRow+1
-                    else:
-                        break
-                if board[checkRow][col] == board[row][col] and ((checkRow, col)) not in mergedLocations:
-                    board[checkRow][col] = (board[checkRow][col])*2
-                    board[row][col] = ' '
-                    mergedLocations[(checkRow, col)] = board[checkRow][col]
-                elif board[checkRow][col] == ' ':
-                    board[checkRow][col] = board[row][col]
-                    board[row][col] = ' '
-                elif checkRow > row + 1:
-                    board[checkRow-1][col] = board[row][col]
-                    board[row][col] = ' '
-    return board, mergedLocations
+    def getLegalMoves(self, board):
+        legalMoves = []
+        if self.canMoveDown(board): legalMoves.append((self.moveDown, Keys.DOWN, "down"))
+        if self.canMoveRight(board): legalMoves.append((self.moveRight, Keys.RIGHT, "right"))
+        if self.canMoveLeft(board): legalMoves.append((self.moveLeft, Keys.LEFT, "left"))
+        if self.canMoveUp(board): legalMoves.append((self.moveUp, Keys.UP, "up"))
+        return legalMoves
+            
+    def move(self):
+        pass
 
-def moveUp(board):
-    mergedLocations = dict()
-    for col in range(4):
-        for row in [1, 2, 3]:
-            if board[row][col] != ' ':
-                checkRow = row - 1
-                while board[checkRow][col] == ' ':
-                    if checkRow-1 > -1:
-                        checkRow = checkRow-1
-                    else:
-                        break
-                if board[checkRow][col] == board[row][col] and ((checkRow, col)) not in mergedLocations:
-                    board[checkRow][col] = (board[checkRow][col])*2
-                    board[row][col] = ' '
-                    mergedLocations[(checkRow, col)] = board[checkRow][col]
-                elif board[checkRow][col] == ' ':
-                    board[checkRow][col] = board[row][col]
-                    board[row][col] = ' '
-                elif checkRow < row - 1:
-                    board[checkRow+1][col] = board[row][col]
-                    board[row][col] = ' '
-    return board, mergedLocations
 
-def moveRight(board):
-    mergedLocations = dict()
-    for row in range(4):
-        for col in [2, 1, 0]:
-            if board[row][col] != ' ':
-                checkCol = col + 1
-                while board[row][checkCol] == ' ':
-                    if checkCol+1 < 4:
-                        checkCol = checkCol+1
-                    else:
-                        break
-                if board[row][checkCol] == board[row][col] and ((row, checkCol)) not in mergedLocations:
-                    board[row][checkCol] = (board[row][checkCol])*2
-                    board[row][col] = ' '
-                    mergedLocations[(row, checkCol)] = board[row][checkCol]
-                elif board[row][checkCol] == ' ':
-                    board[row][checkCol] = board[row][col]
-                    board[row][col] = ' '
-                elif checkCol > col + 1:
-                    board[row][checkCol-1] = board[row][col]
-                    board[row][col] = ' '
-    return board, mergedLocations
+class randomSearch(Search):
 
-def moveLeft(board):
-    mergedLocations = dict()
-    for row in range(4):
-        for col in [1, 2, 3]:
-            if board[row][col] != ' ':
-                checkCol = col - 1
-                while board[row][checkCol] == ' ':
-                    if checkCol-1 > -1:
-                        checkCol = checkCol-1
-                    else:
-                        break
-                if board[row][checkCol] == board[row][col] and ((row, checkCol)) not in mergedLocations:
-                    board[row][checkCol] = (board[row][checkCol])*2
-                    board[row][col] = ' '
-                    mergedLocations[(row, checkCol)] = board[row][checkCol]
-                elif board[row][checkCol] == ' ':
-                    board[row][checkCol] = board[row][col]
-                    board[row][col] = ' '
-                elif checkCol < col - 1:
-                    board[row][checkCol+1] = board[row][col]
-                    board[row][col] = ' '
-    return board, mergedLocations
+    def __init__(self, evaluationFunction=None):
+        super().__init__(evaluationFunction)
 
-def getLegalMoves(board):
-    legalMoves = []
-    if canMoveDown(board): legalMoves.append((moveDown, Keys.DOWN, "down"))
-    if canMoveRight(board): legalMoves.append((moveRight, Keys.RIGHT, "right"))
-    if canMoveLeft(board): legalMoves.append((moveLeft, Keys.LEFT, "left"))
-    if canMoveUp(board): legalMoves.append((moveUp, Keys.UP, "up"))
-    return legalMoves
- 
-class basicSearch():
-
-    def __str__(self):
-        return 'Basic Search'
-
-    def move(self, board):
-        legalMoves = getLegalMoves(board)
-        if len(legalMoves) > 0:
-            return legalMoves[0]
-        
-class randomSearch():
 
     def __str__(self):
         return 'Random Search'
 
     def move(self, board):
-        legalMoves = getLegalMoves(board)
+        legalMoves = self.getLegalMoves(board)
         if len(legalMoves) > 0:
             index = random.randint(0, len(legalMoves)-1)
             return legalMoves[index]
         
-class reflexSearch():
+class reflexSearch(Search):
 
-    def __init__(self, evaluationFunction, weights):
-        self.evaluationFunction = evaluationFunction
-        self.weights = weights
+    def __init__(self, evaluationFunction=None):
+        super().__init__(evaluationFunction)
 
     def __str__(self):
         return 'Reflex Search'
 
     def move(self, board):
-        legalMoves = getLegalMoves(board)
-        movedBoards = [moveDirection[0](copy.deepcopy(board)) for moveDirection in legalMoves]
-        moveValues = [self.evaluationFunction(movedBoard[0], sum(movedBoard[1].values()), self.weights) for movedBoard in movedBoards]
+        legalMoves = self.getLegalMoves(board)
+        movedBoards = []
+        for move in legalMoves:
+            movedBoard = board.copy()
+            move[0](movedBoard)
+            movedBoards.append(movedBoard)
+        #movedBoards = [moveDirection[0](board.copy()) for moveDirection in legalMoves]
+        moveValues = [self.evaluationFunction(movedBoard) for movedBoard in movedBoards]
         return legalMoves[moveValues.index(max(moveValues))]
 
-class expectimaxSearch():
+class expectimaxSearch(Search):
 
-    primes = [[2,   3,  5,  7], 
-              [11, 13, 17, 19],
-              [23, 29, 31, 37],
-              [41, 43, 47, 53]]
-
-    def __init__(self, evalutationFunction, weights):
-    
-        self.evaluationFunction = evalutationFunction
+    def __init__(self, maxDepth, evaluationFunction=None):
+        super().__init__(evaluationFunction)
         self.memo = dict()
-        self.weights = weights
+        self.maxDepth = maxDepth
 
     def __str__(self):
         return 'Expectimax Search'
-    
-    def hash(self, board):
-        hashCode = 0
-        filledTiles = [(i, j) for i in range(4) for j in range(4) if board[i][j] != ' ']
-        for tile in filledTiles:
-            hashCode += board[tile[0]][tile[1]] * self.primes[tile[0]][tile[1]]
-        return hashCode
 
     def move(self, board):
         self.memo.clear()
@@ -208,7 +150,7 @@ class expectimaxSearch():
             Chance has 90% chance of spawning a 2 in a random unoccupied location and 10% chance of spawing a 4
             Evaluation function: based on sum of current tiles, possibilities of merging tiles, location of certain tiles
         '''
-        legalMoves = getLegalMoves(board)
+        legalMoves = self.getLegalMoves(board)
         #print(len(legalMoves))
         #print()
         '''moveValues = []
@@ -224,18 +166,18 @@ class expectimaxSearch():
         return legalMoves[maxIndex]
 
     def expectimax(self, board, maxPlayer, depth, mergeValues):
-        hashedBoard = self.hash(board)
+        hashedBoard = tuple(board)
 
         if not maxPlayer:
             stateValue = 0
             newBoard = copy.deepcopy(board)
-            emptyTiles = [(i, j) for i in range(4) for j in range(4) if board[i][j] == ' ']
+            emptyTiles = [(i, j) for i in range(4) for j in range(4) if board[i][j] == 0]
             for tile in emptyTiles:
                 newBoard[tile[0]][tile[1]] = 2
                 stateValue += 1.8 * self.expectimax(copy.deepcopy(newBoard), True, depth, mergeValues)
                 newBoard[tile[0]][tile[1]] = 4
                 stateValue += 0.2 * self.expectimax(copy.deepcopy(newBoard), True, depth, mergeValues)
-                newBoard[tile[0]][tile[1]] = ' '
+                newBoard[tile[0]][tile[1]] = 0
             #self.memo[hashedBoard] = stateValue / (2*len(emptyTiles))
             self.memo[hashedBoard] = stateValue / (2*len(emptyTiles))
             #scoreNew = (score) / (2*numEmpty)
@@ -246,12 +188,10 @@ class expectimaxSearch():
             #Bot2048.printBoard(board)
             return self.memo[hashedBoard]
 
-        legalMoves = getLegalMoves(board)
-        if depth >= 4 or len(legalMoves) == 0:
+        legalMoves = self.getLegalMoves(board)
+        if depth > self.maxDepth or len(legalMoves) == 0:
             self.memo[hashedBoard] = self.evaluationFunction(board, mergeValues, self.weights)
             return self.memo[hashedBoard]
-            self.memo[self.hash(board)] = self.evaluationFunction(board, mergeValues)
-            return self.memo[self.hash(board)]
         
         #return max([self.expectimax(moveDirection[0](copy.deepcopy(board))[0], False, depth + 1, merges + (1/(4**depth))*sum(moveDirection[0](copy.deepcopy(board))[1].values())) for moveDirection in legalMoves])
         movedBoards = [moveDirection[0](copy.deepcopy(board)) for moveDirection in legalMoves]
@@ -261,5 +201,56 @@ class expectimaxSearch():
         return self.memo[self.hash(board)]
     
     
+class peacefulSearch(Search):
+
+    def __init__(self, maxDepth, evaluationFunction=None):
+        super().__init__(evaluationFunction)
+        self.memo = dict()
+        self.maxDepth = maxDepth
+
+    def __str__(self):
+        return 'Expectimax Search'
+
+    def move(self, board):
+        self.memo.clear()
+        #bot.printBoard(board)
+        '''Expectimax with "Player" and "Chance" turns
+            Player can go Up, Down, Left, Right
+            Chance has 90% chance of spawning a 2 in a random unoccupied location and 10% chance of spawing a 4
+            Evaluation function: based on sum of current tiles, possibilities of merging tiles, location of certain tiles
+        '''
+        legalMoves = self.getLegalMoves(board)
+        moveValues = []
+        for move in legalMoves:
+            movedBoard = board.copy()
+            move[0](movedBoard)
+            moveValues.append(self.expectimax(movedBoard, 1))
+        #moveValues = [self.expectimax(moveDirection[0](board.copy()), 1) for moveDirection in legalMoves]
+        return legalMoves[moveValues.index(max(moveValues))]
+
+    def expectimax(self, board, depth):
+        hashedBoard = tuple(board)
+        if hashedBoard in self.memo.keys():
+            return self.memo[hashedBoard]
+        
+        legalMoves = self.getLegalMoves(board)
+        if len(legalMoves) == 0 or depth > self.maxDepth:
+            self.memo[hashedBoard] = self.evaluationFunction(board)
+            return self.memo[hashedBoard]
+       
+
+
+        moveValues = []
+        for move in legalMoves:
+            movedBoard = board.copy()
+            move[0](movedBoard)
+            moveValues.append(self.expectimax(movedBoard, depth + 1))
+        self.memo[hashedBoard] = max(moveValues)
+        return self.memo[hashedBoard]
+    
+    
+
+
+
 
 

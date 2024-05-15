@@ -1,13 +1,7 @@
 import Bot2048
 from Bot2048 import Bot2048
 import SearchAgents
-from SearchAgents import expectimaxSearch
-from SearchAgents import reflexSearch
-from SearchAgents import randomSearch
-from SearchAgents import basicSearch
-import TestSimulations
 import EvaluationFunctions
-import time
 
 #TestCases.testFunctions(TestCases.randomTestBoards)
 #TestCases.testEvaluationFunction(EvaluationFunctions.evaluate)
@@ -16,20 +10,21 @@ import time
 # [0.2, 0.4, 0.6, 0.2] ?
 #Bot2048(randomSearch()).play()
 
-#Bot2048(expectimaxSearch(EvaluationFunctions.evaluate, [0.04, 0.13, 0.34, 0.36])).play()
 
-random = randomSearch()
-basic = basicSearch()
-reflex = reflexSearch(EvaluationFunctions.evaluate, [1, 1, 1, 1])
-expectimax = expectimaxSearch(EvaluationFunctions.evaluate, [1, 1, 1, 1])
+ok = Bot2048(SearchAgents.reflexSearch(EvaluationFunctions.evaluate2))
+ok.board[0]=2048
+ok.board[1]=2048
+ok.board[2]=2048
+ok.board[3]=2048
+ok.printBoard()
+ok.agent.moveRight(ok.board)
+print()
 
-
-strategies = [reflex]#, reflex, expectimax]
-TestSimulations.runSimulations(strategies, 1)
-'''
-#Bot2048TestCases.testEvaluationFunction()
-#TestCases.testFunctions(TestCases.randomTestBoards)
-#search2 = Search.randomSearch()
-#search3 = Search.basicSearch()
-'''
+ok.printBoard()
+ok.agent.moveRight(ok.board)
+print()
+ok.printBoard()
+ok.agent.moveLeft(ok.board)
+print()
+ok.printBoard()
 

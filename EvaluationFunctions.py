@@ -1,4 +1,3 @@
-import SearchAgents
 import math
 import copy
 
@@ -42,15 +41,6 @@ tileWeights2 = {
 
     }
 
-def getMergeInfo(board):
-    legalMoves = SearchAgents.getLegalMoves(board)
-    sumNumMerges = 0
-    sumMergeValues = 0
-    for move in legalMoves:
-        newBoard =  move[0](copy.deepcopy(board))
-        sumNumMerges += len(newBoard[1].values())
-        sumMergeValues += sum(newBoard[1].values())
-    return sumNumMerges, sumMergeValues
 
 def getTileInfo(board):
     sum = 0
@@ -83,6 +73,10 @@ def calculateSD(board, center, sum):
             if board[i][j] != ' ':
                 variance += math.pow(math.dist(center, (i, j)), 2)*(board[i][j]/sum)
     return math.sqrt(variance)
+
+def evaluate2(board):
+    return max(board)
+
 
 def evaluate(board, mergeValues, weights):
     '''

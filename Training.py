@@ -1,5 +1,5 @@
 import random
-import TestSimulations
+import Simulations
 import SearchAgents
 import EvaluationFunctions
 from EvaluationFunctions import evaluate
@@ -51,7 +51,7 @@ def evolutionSearch():
             strategy = SearchAgents.reflexSearch(evaluate, weightVector)
             trialScores = []
             for j in range(numTestsPerWeightVector):
-                maxTile = TestSimulations.simulateGame(strategy)
+                maxTile = Simulations.simulateGame(strategy)
                 trialScores.append(maxTile)
             scoresMap[(sum(trialScores)/numTestsPerWeightVector)] = weightVector
         # select best candidates
@@ -91,7 +91,7 @@ def gridSearch(numIntervals):
                 for k in [x/numIntervals for x in range(0, numIntervals)]:
                     weightVector = [h, i, j, k ]
                     strategy.weights = weightVector
-                    avgMaxTile = TestSimulations.runSimulations([strategy], 7)
+                    avgMaxTile = Simulations.runSimulations([strategy], 7)
                     avgMaxTiles[avgMaxTile] = weightVector
                     #if curMaxTile > maxTile:
                         #maxTile = curMaxTile
@@ -110,7 +110,7 @@ def randomSearch(numIntervals):
                 for k in [random.random() for x in range(-numIntervals, 0)]:
                     weightVector = [h, i, j, k]
                     strategy.weights = weightVector
-                    avgMaxTile = TestSimulations.runSimulations([strategy], 10)
+                    avgMaxTile = Simulations.runSimulations([strategy], 10)
                     avgMaxTiles[avgMaxTile] = weightVector
     maxTilesList = list(avgMaxTiles.keys())
     bestWeights = avgMaxTiles[max(maxTilesList)]
@@ -122,7 +122,7 @@ def constantSearch(numIntervals):
         averageScores = dict()
         for i in [x/numIntervals for x in range(0, numIntervals)]:
             strategy.weights[round%len(strategy.weights)] = i
-            averageScore = TestSimulations.runSimulations([strategy], 10)
+            averageScore = Simulations.runSimulations([strategy], 10)
             averageScores[averageScore] = i
         averageScoresList = list(averageScores.keys())
         newWeight = averageScores[max(averageScoresList)]
