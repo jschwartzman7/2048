@@ -1,7 +1,8 @@
-import Bot2048
-from Bot2048 import Bot2048
+import GameBoard2048
+from GameBoard2048 import GameBoard
 import SearchAgents
 import EvaluationFunctions
+import Simulations
 
 #TestCases.testFunctions(TestCases.randomTestBoards)
 #TestCases.testEvaluationFunction(EvaluationFunctions.evaluate)
@@ -10,21 +11,9 @@ import EvaluationFunctions
 # [0.2, 0.4, 0.6, 0.2] ?
 #Bot2048(randomSearch()).play()
 
+evalFunction = EvaluationFunctions.EvaluationFunction([0.04110188, 0.31855271])
 
-ok = Bot2048(SearchAgents.reflexSearch(EvaluationFunctions.evaluate2))
-ok.board[0]=2048
-ok.board[1]=2048
-ok.board[2]=2048
-ok.board[3]=2048
-ok.printBoard()
-ok.agent.moveRight(ok.board)
-print()
 
-ok.printBoard()
-ok.agent.moveRight(ok.board)
-print()
-ok.printBoard()
-ok.agent.moveLeft(ok.board)
-print()
-ok.printBoard()
+agent = SearchAgents.peacefulSearch(evalFunction.evaluateBoard, 3)
 
+print("Averagte max tile:", Simulations.agentAvgScore(agent, 20))

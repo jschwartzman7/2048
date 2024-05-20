@@ -3,7 +3,7 @@ import copy
 import math
 import random
 
-class Search():
+class Search:
 
     def __init__(self, evaluationFunction=None):
         self.evaluationFunction = evaluationFunction
@@ -72,46 +72,48 @@ class Search():
     def moveDown(self, board):
         for column in range(4):
             board[column::4] = self.moveArrayRight(board[column::4])
+        return board
 
 
     def moveUp(self, board):
         for column in range(4):
             board[column::4] = self.moveArrayLeft(board[column::4])
+        return board
 
     def moveRight(self, board):
         for row in range(4):
             board[4*row : 4*row + 4] = self.moveArrayRight(board[4*row : 4*row + 4])
+        return board
        
     def moveLeft(self, board):
         for row in range(4):
             board[4*row : 4*row + 4] = self.moveArrayLeft(board[4*row : 4*row + 4])
+        return board
 
     def getLegalMoves(self, board):
         legalMoves = []
-        if self.canMoveDown(board): legalMoves.append((self.moveDown, Keys.DOWN, "down"))
-        if self.canMoveRight(board): legalMoves.append((self.moveRight, Keys.RIGHT, "right"))
-        if self.canMoveLeft(board): legalMoves.append((self.moveLeft, Keys.LEFT, "left"))
-        if self.canMoveUp(board): legalMoves.append((self.moveUp, Keys.UP, "up"))
+        if self.canMoveUp(board): legalMoves.append(self.moveUp)
+        if self.canMoveDown(board): legalMoves.append(self.moveDown)
+        if self.canMoveLeft(board): legalMoves.append(self.moveLeft)
+        if self.canMoveRight(board): legalMoves.append(self.moveRight)
         return legalMoves
             
-    def move(self):
+    def getMove(self):
         pass
 
 
 class randomSearch(Search):
 
-    def __init__(self, evaluationFunction=None):
-        super().__init__(evaluationFunction)
-
+    def __init__(self):
+        super().__init__()
 
     def __str__(self):
         return 'Random Search'
 
-    def move(self, board):
+    def getMove(self, board):
         legalMoves = self.getLegalMoves(board)
         if len(legalMoves) > 0:
-            index = random.randint(0, len(legalMoves)-1)
-            return legalMoves[index]
+            return legalMoves[random.randint(0, len(legalMoves)-1)]
         
 class reflexSearch(Search):
 
@@ -121,20 +123,16 @@ class reflexSearch(Search):
     def __str__(self):
         return 'Reflex Search'
 
-    def move(self, board):
+    def getMove(self, board):
         legalMoves = self.getLegalMoves(board)
-        movedBoards = []
-        for move in legalMoves:
-            movedBoard = board.copy()
-            move[0](movedBoard)
-            movedBoards.append(movedBoard)
-        #movedBoards = [moveDirection[0](board.copy()) for moveDirection in legalMoves]
-        moveValues = [self.evaluationFunction(movedBoard) for movedBoard in movedBoards]
-        return legalMoves[moveValues.index(max(moveValues))]
+        if len(legalMoves) > 0:
+            movedBoards = [moveFunction(board.copy()) for moveFunction in legalMoves]
+            movedBoardValues = [self.evaluationFunction(board) for board in movedBoards]
+            return legalMoves[movedBoardValues.index(max(movedBoardValues))]
 
 class expectimaxSearch(Search):
 
-    def __init__(self, maxDepth, evaluationFunction=None):
+    def __init__(self, evaluationFunction=None, maxDepth=4):
         super().__init__(evaluationFunction)
         self.memo = dict()
         self.maxDepth = maxDepth
@@ -142,28 +140,22 @@ class expectimaxSearch(Search):
     def __str__(self):
         return 'Expectimax Search'
 
-    def move(self, board):
+    def getMove(self, board):
         self.memo.clear()
         #bot.printBoard(board)
         '''Expectimax with "Player" and "Chance" turns
             Player can go Up, Down, Left, Right
             Chance has 90% chance of spawning a 2 in a random unoccupied location and 10% chance of spawing a 4
-            Evaluation function: based on sum of current tiles, possibilities of merging tiles, location of certain tiles
         '''
         legalMoves = self.getLegalMoves(board)
-        #print(len(legalMoves))
-        #print()
-        '''moveValues = []
-        for moveDirection in legalMoves:
-            newBoard = moveDirection[0](board)
-            moveValues.append(self.expectimax(newBoard[0], False, 1, sum(newBoard[1].values())))'''
-        moveValues = [self.expectimax(moveDirection[0](copy.deepcopy(board))[0], False, 1, sum(moveDirection[0](copy.deepcopy(board))[1].values())) for moveDirection in legalMoves]
-        '''for i in range(len(legalMoves)):
-            print(moveValues[i])
-        print()'''
-        #moveValues = [self.expectimax(legalMoves[0][0](board.copy()), False, 1)]
-        maxIndex = moveValues.index(max(moveValues))
-        return legalMoves[maxIndex]
+        if len(legalMoves) > 0:
+            moveValues = [self.expectimax(moveDirection[0](board.copy()), False, 1, sum(moveDirection[0](board.copy()))) for moveDirection in legalMoves]
+            '''for i in range(len(legalMoves)):
+                print(moveValues[i])
+            print()'''
+            #moveValues = [self.expectimax(legalMoves[0][0](board.copy()), False, 1)]
+            maxIndex = moveValues.index(max(moveValues))
+            return legalMoves[maxIndex]
 
     def expectimax(self, board, maxPlayer, depth, mergeValues):
         hashedBoard = tuple(board)
@@ -203,49 +195,38 @@ class expectimaxSearch(Search):
     
 class peacefulSearch(Search):
 
-    def __init__(self, maxDepth, evaluationFunction=None):
+    def __init__(self, evaluationFunction=None, maxDepth=4):
         super().__init__(evaluationFunction)
         self.memo = dict()
         self.maxDepth = maxDepth
 
     def __str__(self):
-        return 'Expectimax Search'
+        return 'Peaceful Search'
 
-    def move(self, board):
-        self.memo.clear()
-        #bot.printBoard(board)
-        '''Expectimax with "Player" and "Chance" turns
-            Player can go Up, Down, Left, Right
-            Chance has 90% chance of spawning a 2 in a random unoccupied location and 10% chance of spawing a 4
-            Evaluation function: based on sum of current tiles, possibilities of merging tiles, location of certain tiles
+    def getMove(self, board):
+        ''' maxMax search, where no piece is generated between turns
+            Treating game to be deterministic; takes max over deeper board values, not average
         '''
         legalMoves = self.getLegalMoves(board)
-        moveValues = []
-        for move in legalMoves:
-            movedBoard = board.copy()
-            move[0](movedBoard)
-            moveValues.append(self.expectimax(movedBoard, 1))
-        #moveValues = [self.expectimax(moveDirection[0](board.copy()), 1) for moveDirection in legalMoves]
-        return legalMoves[moveValues.index(max(moveValues))]
+        if len(legalMoves) > 0:
+            movedBoardValues = [self.search(moveFunction(board.copy()), 1) for moveFunction in legalMoves]
+            return legalMoves[movedBoardValues.index(max(movedBoardValues))]
 
-    def expectimax(self, board, depth):
+    def search(self, board, curDepth):
+        if curDepth > self.maxDepth:
+            return self.evaluationFunction(board)
+
         hashedBoard = tuple(board)
         if hashedBoard in self.memo.keys():
             return self.memo[hashedBoard]
         
         legalMoves = self.getLegalMoves(board)
-        if len(legalMoves) == 0 or depth > self.maxDepth:
-            self.memo[hashedBoard] = self.evaluationFunction(board)
-            return self.memo[hashedBoard]
+        if len(legalMoves) == 0:
+            return self.evaluationFunction(board) # should return 0
        
 
-
-        moveValues = []
-        for move in legalMoves:
-            movedBoard = board.copy()
-            move[0](movedBoard)
-            moveValues.append(self.expectimax(movedBoard, depth + 1))
-        self.memo[hashedBoard] = max(moveValues)
+        movedBoardValues = [self.search(moveFunction(board.copy()), curDepth+1) for moveFunction in legalMoves]
+        self.memo[hashedBoard] = max(movedBoardValues)
         return self.memo[hashedBoard]
     
     

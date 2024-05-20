@@ -1,4 +1,4 @@
-from Bot2048 import Bot2048
+from GameBoard2048 import GameBoard
 from selenium import webdriver
 import time
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -12,24 +12,25 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 
-class SeleniumBot(Bot2048):
-    def __init__(self, strategy):
-        super().__init__(strategy)
+class SeleniumBot:
+    def __init__(self, agent):
+        self.agent = agent
+        self.board = GameBoard()
         options = Options().page_load_strategy = 'eager'
         self.driver = webdriver.Chrome(options=options, service=ChromeService())
         self.actions = ActionChains(self.driver)
 
     
     def fetchCurrentBoard(self):
-            HTML = self.driver.page_source
-            parsedHTML = BeautifulSoup(HTML, 'html.parser')
-            tiles = parsedHTML.find_all(class_="tile")
-            for tile in tiles:
-                value = tile.contents[0].string
-                position = tile['class'][2][-3:]
-                self.board[(int(position[2])-1)*4 + (int(position[0])-1)]
-                if int(value) > self.maxTile: self.maxTile = int(value)
-            return parsedHTML
+        HTML = self.driver.page_source
+        parsedHTML = BeautifulSoup(HTML, 'html.parser')
+        tiles = parsedHTML.find_all(class_="tile")
+        for tile in tiles:
+            value = tile.contents[0].string
+            position = tile['class'][2][-3:]
+            self.board[(int(position[2])-1)*4 + (int(position[0])-1)]
+            if int(value) > self.maxTile: self.maxTile = int(value)
+        return parsedHTML
 
     def editHTML(self):
         gameContainer = self.driver.execute_script("return document.querySelector('.container')")
@@ -79,7 +80,7 @@ class SeleniumBot(Bot2048):
                     won = True
                     keepGoingButton = self.driver.execute_script("return document.querySelector('.keep-playing-button')")
                     keepGoingButton.click()
-                self.actions.send_keys(self.strategy.move(self.board, self.evaluationFunction)[1]).perform()
+                self.actions.send_keys(self.agent.move(self.board, self.evaluationFunction)[1]).perform()
                 self.actions.reset_actions()
                 self.resetBoard()
                 time.sleep(.1)
