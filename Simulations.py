@@ -1,12 +1,9 @@
-from GameBoard2048 import GameBoard
-import SearchAgents
-from SearchAgents import Search
+import GameBoard2048 as gb
+import SearchAgents as sa
+import EvaluationFunctions as ef
 import random
-
-
-gameBoard = GameBoard()
-basicAgent = Search()
-
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def randomStartingBoard():
@@ -16,83 +13,80 @@ def randomStartingBoard():
     return board
 
 def simulateGame(agent):
-    gameBoard.board = randomStartingBoard()
-    while len(agent.getLegalMoves(gameBoard.board)) > 0:
-        #bot.printBoard()
-        agent.getMove(gameBoard.board)(gameBoard.board)
-        #bot.printBoard()
-        gameBoard.generatePiece()
-    return gameBoard.getMaxTile()
+    gameBoard = randomStartingBoard()
+    legalMoves = sa.getLegalMoves(gameBoard)
+    while len(legalMoves) > 0:
+        agent.getMove(gameBoard, legalMoves)(gameBoard)
+        gb.generatePiece(gameBoard)
+        legalMoves = sa.getLegalMoves(gameBoard)
+    return max(gameBoard), sum(gameBoard)
 
-def agentAvgScore(agent, numRounds):
-    sumMaxTiles = 0
+def scoreAgent(agent, numRounds, scoreCalculation=0):
+    maxTiles = []
+    #sumTiles = []
     for n in range(numRounds):
-        sumMaxTiles += simulateGame(agent)
-    return sumMaxTiles / numRounds
-
-
+        maxTile = simulateGame(agent)[0]
+        maxTiles.append(maxTile)
+        #sumTiles.append(sumTile)
+    return np.median(maxTiles)
+    '''match scoreCalculation:
+        case 1: # median
+            return np.median(maxTiles), np.median(sumTiles)
+        case 2: # mode
+            return max(maxTiles, key=maxTiles.count), max(sumTiles, key=sumTiles.count)
+        case _: # mean
+            return sum(maxTiles)/numRounds, sum(sumTiles)/numRounds'''
+        
 def userPlayGame():
-    gameBoard.board = randomStartingBoard()
-    gameBoard.printBoard()
+    gameBoard = randomStartingBoard()
+    gb.printBoard(gameBoard)
     userMoved = False
-    while len(basicAgent.getLegalMoves(gameBoard.board)) > 0:
+    while len(sa.getLegalMoves(gameBoard)) > 0:
         while not userMoved:
             match input("Your move: "):
                 case "up":
-                    if basicAgent.canMoveUp(gameBoard.board):
+                    if sa.canMoveUp(gameBoard):
                         print("Moving up")
-                        basicAgent.moveUp(gameBoard.board)
-                        gameBoard.printBoard()
+                        sa.moveUp(gameBoard)
+                        gb.printBoard(gameBoard)
                         userMoved = True
                     else:
                         print("Cannot move up.  Make a different move")
 
                 case "down":
-                    if basicAgent.canMoveDown(gameBoard.board):
+                    if sa.canMoveDown(gameBoard):
                         print("Moving down")
-                        basicAgent.moveDown(gameBoard.board)
-                        gameBoard.printBoard()
+                        sa.moveDown(gameBoard)
+                        gb.printBoard(gameBoard)
                         userMoved = True
                     else:
                         print("Cannot move down.  Make a different move")
                     
                 case "left":
-                    if basicAgent.canMoveLeft(gameBoard.board):
+                    if sa.canMoveLeft(gameBoard):
                         print("Moving left")
-                        basicAgent.moveLeft(gameBoard.board)
-                        gameBoard.printBoard()
+                        sa.moveLeft(gameBoard)
+                        gb.printBoard(gameBoard)
                         userMoved = True
                     else:
                         print("Cannot move left.  Make a different move")
                     
                 case "right":
-                    if basicAgent.canMoveRight(gameBoard.board):
+                    if sa.canMoveRight(gameBoard):
                         print("Moving right")
-                        basicAgent.moveRight(gameBoard.board)
-                        gameBoard.printBoard()
+                        sa.moveRight(gameBoard)
+                        gb.printBoard(gameBoard)
                         userMoved = True
                     else:
                         print("Cannot move right.  Make a different move")
-                    
                 case _:
-                    print("Invalid move.  Make a different move")
-        emptyCords = gameBoard.getEmptyIndices()
-        if len(emptyCords) > 0:
-            print("New piece...")
-            random.shuffle(emptyCords)
-            gameBoard.board[emptyCords[0]] = 2 if random.random() < .9 else 4
-            gameBoard.printBoard()
+                    print("Invalid move.  Re-enter your move")
+        gb.generatePiece(gameBoard)
+        print("New piece added")
+        gb.printBoard(gameBoard)
         userMoved = False
-    print("Game Over. Highest tile: ", gameBoard.getMaxTile())
+    print("Game Over")
+    print("Highest tile: ", max(gameBoard))
+    print("Total score: ", sum(gameBoard))
 
 
-
-
-
- 
-
-
-
-
-
- 
