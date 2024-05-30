@@ -3,6 +3,7 @@ import SearchAgents as sa
 import EvaluationFunctions as ef
 import random
 import matplotlib.pyplot as plt
+import random
 import numpy as np
 
 
@@ -11,6 +12,9 @@ def randomStartingBoard():
     tile1Idx, tile2Idx = random.sample(range(16), 2)
     board[tile1Idx], board[tile2Idx] = 2 if random.random() < .9 else 4, 2 if random.random() < .9 else 4
     return board
+
+def randomStartingBoardNumpy():
+   return np.where(np.isin(np.arange(16), np.random.choice(np.arange(16), size=2, replace=False)), np.random.choice([2,4], size=16, p=[0.9,0.1]), 0).reshape(4,4) 
 
 def simulateGame(agent):
     gameBoard = randomStartingBoard()
@@ -89,4 +93,4 @@ def userPlayGame():
     print("Highest tile: ", max(gameBoard))
     print("Total score: ", sum(gameBoard))
 
-
+print(randomStartingBoardNumpy())

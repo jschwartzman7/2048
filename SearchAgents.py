@@ -1,5 +1,6 @@
 import random
 import GameBoard2048 as gb
+import numpy as np
 
 def canMoveDown(board):
     for idx in range(0, 12):
@@ -182,7 +183,7 @@ class ExpectimaxSearch(Search):
         '''
         moveValues = [self.expectimax(moveDirection(board.copy()), False, 1) for moveDirection in legalMoves]
         return legalMoves[moveValues.index(max(moveValues))]
-
+    
     def expectimax(self, board, maxPlayer, curDepth):
         legalMoves = getLegalMoves(board)
         if len(legalMoves) == 0:

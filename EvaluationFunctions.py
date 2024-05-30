@@ -7,6 +7,9 @@ def defaultEval(board):
     boardCenter = center(board)
     return math.log2(max(board)) + len(gb.emptyIndices(board)) - standardDeviation(board, boardCenter) - distanceCenterCorner(boardCenter)
 
+def centerNumpy(board): # board is 2D numpy array
+    loggedBoard = np.log2(board, where=board>0)
+    return np.sum(loggedBoard*np.arange(4))/np.sum(loggedBoard), np.sum(np.transpose(loggedBoard)*np.arange(4))/np.sum(loggedBoard)
 
 def center(board):
     '''
@@ -19,6 +22,15 @@ def center(board):
     yWeightedSum = sum([cord[1] for cord in xyWeightedCords])
     return xWeightedSum/sum(loggedBoard), yWeightedSum/sum(loggedBoard)
 
+def standardDeviationNumpy(board, center):
+    '''
+    standard deviation of log weighted board using getCenter as average
+    range is 0 to x < uhh
+    ''' 
+    loggedBoard = np.log2(board, where=board>0)
+    return np.sqrt(np.sum(loggedBoard*np.sum(np.square(np.flip(np.stack(np.indices((4, 4)),axis=-1),axis=-1)-center),axis=-1)))
+    
+
 def standardDeviation(board, center):
     '''
     standard deviation of log weighted board using getCenter as average
@@ -26,7 +38,7 @@ def standardDeviation(board, center):
     ''' 
     loggedBoard = [math.log2(board[i]) if board[i] > 0 else 0 for i in range(16)]
     variance = sum([math.pow(math.dist(center, gb.to2D(i)), 2)*loggedBoard[i] if board[i] > 0 else 0 for i in range(16)])
-    return transformStandardDeviation(math.sqrt(variance))
+    return math.sqrt(variance)
 
 def distanceCenterCorner(center):
     '''
@@ -64,3 +76,14 @@ class EvaluationFunction:
     def distCenterCornerEval(self, board):
         return distanceCenterCorner(center(board))*self.parameters
     
+
+'''board = gb.randomBoard()
+gb.printBoard(board)
+print("center: ", center(board))
+print("SD: ", standardDeviation(board, center(board)))
+print()
+print("NUMPY")
+numpyBoard = np.array(board).reshape(4, 4)
+print(numpyBoard)
+print("center: ", centerNumpy(numpyBoard))
+print("SD: ", standardDeviationNumpy(numpyBoard, centerNumpy(numpyBoard)))'''
