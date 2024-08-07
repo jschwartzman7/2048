@@ -1,48 +1,43 @@
-from GameBoard2048 import randomBoard
-from GameBoard2048 import printBoard
-import SearchAgents as sa
 
-
-def testMove(moveDirection):
-    board = randomBoard()
-    printBoard(board)
+def testMove(moveDirection, tilesFilled, maxExponent):
+    board = gb.randomBoardNumpy(maxTileExponent=maxExponent, numFilled=tilesFilled)
+    print(board)
     match moveDirection:
         case "down":
             print("Moving Down")
-            sa.moveDown(board)
+            board = sa.moveDown(board)
         case "right":
             print("Moving Right")
-            sa.moveRight(board)
+            board = sa.moveRight(board)
         case "left":
             print("Moving Left")
-            sa.moveLeft(board)
+            board = sa.moveLeft(board)
         case "up":
             print("Moving Up")
-            sa.moveUp(board)
-    printBoard(board)
+            board = sa.moveUp(board)
+    print(board)
 
-def testMoveUp(numBoards=5):
+def testMoveUp(numBoards=5, tilesFilled=8, maxExponent=t.maxExponent):
     print("Move Up Test")
     for i in range(numBoards):
         print("Test Board #", i+1)
-        testMove("up")
+        testMove("up", tilesFilled, maxExponent)
         
-def testMoveDown(numBoards=5):
+def testMoveDown(numBoards=5, tilesFilled=8, maxExponent=t.maxExponent):
     print("Move Down Test")
     for i in range(numBoards):
         print("Test Board #", i+1)
-        testMove("down")
+        testMove("down", tilesFilled, maxExponent)
         
-def testMoveLeft(numBoards=5):
+def testMoveLeft(numBoards=5, tilesFilled=8, maxExponent=t.maxExponent):
     print("Move Left Test")
     for i in range(numBoards):
         print("Test Board #", i+1)
-        testMove("left")
+        testMove("left", tilesFilled, maxExponent)
         
-def testMoveRight(numBoards=5):
+def testMoveRight(numBoards=5, tilesFilled=8, maxExponent=t.maxExponent):
     print("Move Right Test")
     for i in range(numBoards):
         print("Test Board #", i+1)
-        testMove("right")
-   
-testMoveRight()
+        testMove("right", tilesFilled, maxExponent)
+ 

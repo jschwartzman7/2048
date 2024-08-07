@@ -1,119 +1,163 @@
-import random
-import GameBoard2048 as gb
-import numpy as np
+import evaluationFunctions as ef
+import gameBoard as gb
+from constants import rand, np
+import time
 
-def canMoveDown(board):
-    for idx in range(0, 12):
-        if board[idx] != 0 and (board[idx+4] == 0 or board[idx+4] == board[idx]):
-            return True
-    return False
+'''
+    0  | 1  | 2  | 3
+    ----------------
+    4  | 5  | 6  | 7
+    ----------------
+    8  | 9  | 10 | 11
+    ----------------
+    12 | 13 | 14 | 15
+'''
 
-def canMoveUp(board):
-    for idx in range(4, 16):
-        if board[idx] != 0 and (board[idx-4] == 0 or board[idx-4] == board[idx]):
-            return True
-    return False
+def canMoveUp(board:np.ndarray) -> bool:
+    return not np.array_equal(board, moveUp(board))
 
-def canMoveRight(board):
-    for idx in range(16):
-        if (idx+1)%4 == 0:
-            continue
-        if board[idx] != 0 and (board[idx+1] == 0 or board[idx+1] == board[idx]):
-            return True
-    return False
+def canMoveDown(board:np.ndarray) -> bool:
+    return not np.array_equal(board, moveDown(board))
 
-def canMoveLeft(board):
-    for idx in range(16):
-            if idx%4 == 0:
-                continue
-            if board[idx] != 0 and (board[idx-1] == 0 or board[idx-1] == board[idx]):
-                return True
-    return False
+def canMoveRight(board:np.ndarray) -> bool:
+    return not np.array_equal(board, moveRight(board))
 
-def moveArrayLeft(arr): # Ex. [0, 4, 4, 8] -> [8, 8, 0, 0]
-    mergedIndices = set()
-    for i in range(1, len(arr)):
-        for j in range(i, 0, -1):
-            match arr[j-1], arr[j]:
-                case x, 0:
-                    pass
-                case 0, x:
-                    arr[j-1], arr[j] = arr[j], arr[j-1]
-                case x, y if x == y and j-1 not in mergedIndices and j not in mergedIndices:
-                    arr[j-1], arr[j] = 2*arr[j-1], 0
-                    mergedIndices.add(j-1)
-                case _:
-                    pass
-    return arr
+def canMoveLeft(board:np.ndarray) -> bool:
+    return not np.array_equal(board, moveLeft(board))
 
-def moveArrayRight(arr): # Ex. [0, 4, 4, 8] -> [0, 0, 8, 8]
-    mergedIndices = set()
-    for i in range(len(arr)-2, -1, -1):
-        for j in range(i, len(arr)-1):
-            match arr[j], arr[j+1]:
-                case 0, x:
-                    pass
-                case x, 0:
-                    arr[j], arr[j+1] = arr[j+1], arr[j]
-                case x, y if x == y and j not in mergedIndices and j+1 not in mergedIndices:
-                    arr[j], arr[j+1] = 0, 2*arr[j+1]
-                    mergedIndices.add(j+1)
-                case _:
-                    pass
-    return arr
+def moveUp(board:np.ndarray) -> np.ndarray: # board = np.array().shape=(4, 4)
+    return np.apply_along_axis(shiftedArray, 0, board)
 
-def moveDown(board):
-    for column in range(4):
-        board[column::4] = moveArrayRight(board[column::4])
-    return board
+def moveDown(board:np.ndarray) -> np.ndarray:
+    return np.flipud(np.apply_along_axis(shiftedArray, 0, np.flipud(board)))
 
-def moveUp(board):
-    for column in range(4):
-        board[column::4] = moveArrayLeft(board[column::4])
-    return board
+def moveRight(board:np.ndarray) -> np.ndarray:
+    return np.fliplr(np.apply_along_axis(shiftedArray, 1, np.fliplr(board)))
 
-def moveRight(board):
-    for row in range(4):
-        board[4*row : 4*row + 4] = moveArrayRight(board[4*row : 4*row + 4])
-    return board
+def moveLeft(board:np.ndarray) -> np.ndarray:
+    return np.apply_along_axis(shiftedArray, 1, board)
+
+def shiftedArray(array:np.ndarray) -> np.ndarray:
+    ''' Applies a single swipe move to the 1D array'''
     
-def moveLeft(board):
-    for row in range(4):
-        board[4*row : 4*row + 4] = moveArrayLeft(board[4*row : 4*row + 4])
-    return board
+    shiftedArray = array[array!=0]
+    if len(shiftedArray) == 0:
+        return array
+    mergedIndices = set()
+    idx = 1
+    while idx < len(shiftedArray):
+        if np.all(shiftedArray[idx:] == 0):
+            break
+        if idx == 0:
+            idx += 1
+        elif shiftedArray[idx-1] == 0:
+            shiftedArray[idx], shiftedArray[idx-1] = 0, shiftedArray[idx]
+            idx -= 1
+        elif shiftedArray[idx] == shiftedArray[idx-1] and idx-1 not in mergedIndices:
+            shiftedArray[idx], shiftedArray[idx-1] = 0, 2*shiftedArray[idx-1]
+            mergedIndices.add(idx-1)
+            idx += 1
+        else:
+            idx += 1
+    return np.pad(shiftedArray, (0, 4-len(shiftedArray)))
 
-moveToString = {moveDown: "down", moveRight: "right", moveLeft: "left", moveUp: "up"}
+
+moves = [moveUp, moveDown, moveRight, moveLeft]
+
+stringToMove = {'down': {'move': moveDown, 'can': canMoveDown}, 'right': {'move': moveRight, 'can': canMoveRight}, 'left': {'move': moveLeft, 'can': canMoveLeft}, 'up': {'move': moveUp, 'can': canMoveUp}}
+
+def canMoveInDirection(directionInput:str, board:np.ndarray) -> bool:
+    if directionInput in stringToMove:
+        return stringToMove[directionInput]['can'](board)
+    return None
+
+def moveInDirection(directionInput:str):
+    if directionInput in stringToMove:
+        return stringToMove[directionInput]['move']
+    return None
 
 def getLegalMoves(board):
     legalMoves = []
-    if canMoveDown(board): legalMoves.append(moveDown)
-    if canMoveRight(board): legalMoves.append(moveRight)
-    if canMoveLeft(board): legalMoves.append(moveLeft)
-    if canMoveUp(board): legalMoves.append(moveUp)
+    if canMoveDown(board): 
+        legalMoves.append(moveDown)
+    if canMoveRight(board): 
+        legalMoves.append(moveRight)
+    if canMoveLeft(board): 
+        legalMoves.append(moveLeft)
+    if canMoveUp(board): 
+        legalMoves.append(moveUp)
     return legalMoves
-        
+
+def filterTileIndices(emptyIndices:np.ndarray) -> tuple:
+    ''' tuple of empty tile indices n x 2
+    . [0,0]
+    . [0,1]
+    . [0,2]
+    . [0,3]
+    . [1,0]
+    . [1,1]
+    . [1,2]
+    .]
+    Return MINIMUM number of indices such that each empty row and column is accounted for
+    '''
+
+    emptyXCounts = {x: np.count_nonzero(emptyIndices[:,0]==x) for x in np.unique(emptyIndices[:,0])}
+    emptyYCounts = {y: np.count_nonzero(emptyIndices[:,1]==y) for y in np.unique(emptyIndices[:,1])}
+    uniqueEmptyIndices = [v for v in emptyIndices if emptyXCounts[v[0]] == 1 and emptyYCounts[v[1]] == 1]
+    selectedIndices = [[v[0] for v in uniqueEmptyIndices],[v[1] for v in uniqueEmptyIndices]]
+    print("initially selected: ", selectedIndices)
+    missingRows = np.setdiff1d(emptyIndices[:,0], selectedIndices[0])
+    missingColumns = np.setdiff1d(emptyIndices[:,1], selectedIndices[1])
+    while missingRows.size > 0 or missingColumns.size > 0:
+        if missingRows.size > 0:
+            newXIdx = sorted(missingRows, key=lambda v:emptyXCounts[v])[0]
+            emptyXCounts[newXIdx] -= 1
+            possibleYs = np.unique(emptyIndices[emptyIndices[:,0]==newXIdx][:,1])
+            goodYs = possibleYs[np.isin(possibleYs, missingColumns)]
+            if np.any(goodYs):
+                newYIdx = sorted(goodYs, key=lambda y: emptyYCounts[y])[0]
+            else:
+                newYIdx = sorted(possibleYs, key=lambda y: emptyYCounts[y])[0]
+            emptyYCounts[newYIdx] -= 1
+        else:
+            newYIdx = sorted(missingColumns, key=lambda v:emptyYCounts[v])[0]
+            emptyYCounts[newYIdx] -= 1
+            possibleXs = np.unique(emptyIndices[emptyIndices[:,1]==newYIdx][:,0])
+            goodXs = possibleXs[np.isin(possibleXs, missingRows)]
+            if np.any(goodXs):
+                newXIdx = sorted(goodXs, key=lambda x: emptyXCounts[x])[0]
+            else:
+                newXIdx = sorted(possibleXs, key=lambda x: emptyXCounts[x])[0]
+            emptyXCounts[newXIdx] -= 1
+        selectedIndices[0].append(newXIdx)
+        selectedIndices[1].append(newYIdx)
+        missingRows = np.setdiff1d(missingRows, selectedIndices[0])
+        missingColumns = np.setdiff1d(missingColumns, selectedIndices[1])
+    return selectedIndices
+
+
 class Search:
     
-    def getMove(self):
+    def getMove(self, board, legalMoves):
         return
     
-    def testMove(self):
+    def testMove(self, board, legalMoves):
         return
+        
 
 class RandomSearch(Search):
 
     def __str__(self):
         return 'Random Search'
 
-    def getMove(self, board):
-        legalMoves = getLegalMoves(board)
+    def getMove(self, board, legalMoves):
         if len(legalMoves) > 0:
             return legalMoves[random.randint(0, len(legalMoves)-1)]
         
-    def testMove(self, board):
+    def testMove(self, board, legalMoves):
         print("Initial Board:")
-        gb.printBoard(board)
-        legalMoves = getLegalMoves(board)
+        print(board)
+        legalMoves = self.getLegalMoves(board)
         if len(legalMoves) > 0:
             print("Returned move: ", moveToString[legalMoves[random.randint(0, len(legalMoves)-1)]])
         
@@ -122,43 +166,43 @@ class BasicSearch(Search):
     def __str__(self):
         return 'Basic Search'
 
-    def getMove(self, board):
-        legalMoves = getLegalMoves(board)
+    def getMove(self, board, legalMoves):
+        legalMoves = self.getLegalMoves(board)
         if len(legalMoves) > 0:
             return legalMoves[0]
         
-    def testMove(self, board):
+    def testMove(self, board, legalMoves):
         print("Initial Board:")
-        gb.printBoard(board)
-        legalMoves = getLegalMoves(board)
+        print(board)
+        legalMoves = self.getLegalMoves(board)
         if len(legalMoves) > 0:
             print("Returned move: ", moveToString[legalMoves[0]])
         
 class ReflexSearch(Search):
 
-    def __init__(self, evaluationFunction=None):
+    def __init__(self, evaluationFunction=ef.defaultEval):
         self.evaluationFunction = evaluationFunction
 
     def __str__(self):
         return 'Reflex Search'
 
-    def getMove(self, board):
+    def getMove(self, board, legalMoves):
         legalMoves = getLegalMoves(board)
         if len(legalMoves) > 0:
             movedBoards = [moveFunction(board.copy()) for moveFunction in legalMoves]
             movedBoardValues = [self.evaluationFunction(board) for board in movedBoards]
             return legalMoves[movedBoardValues.index(max(movedBoardValues))]
         
-    def testMove(self, board):
+    def testMove(self, board, legalMoves):
         print("Initial Board:")
-        gb.printBoard(board)
+        print(board)
         legalMoves = getLegalMoves(board)
         if len(legalMoves) > 0:
             movedBoards = []
             for move in legalMoves:
                 print("Just moved ", moveToString[move])
                 movedBoards.append(move(board.copy()))
-                gb.printBoard(movedBoards[-1])
+                print(movedBoards[-1])
                 print("Board Value = ", self.evaluationFunction(movedBoards[-1]))
                 print()
             movedBoardValues = [self.evaluationFunction(board) for board in movedBoards]
@@ -166,11 +210,13 @@ class ReflexSearch(Search):
 
 class ExpectimaxSearch(Search):
 
-    def __init__(self, evaluationFunction=None, maxDepth=3, newTileFrac = 1):
+    def __init__(self, evaluationFunction=ef.defaultEval, maxDepth=3, newTileFrac=1, newTileMax=15):
         self.evaluationFunction = evaluationFunction
         self.maxDepth = maxDepth
         self.newTileFrac = newTileFrac
-        self.memo = dict()
+        self.newTileMax = newTileMax
+        self.movesDict = dict()
+        self.hashesDict = dict()
 
     def __str__(self):
         return 'Expectimax Search'
@@ -181,75 +227,110 @@ class ExpectimaxSearch(Search):
             Chance has 90% chance of spawning a 2 in a random unoccupied location and 10% chance of spawing a 4
             legalMoves passed in is non-empty
         '''
-        moveValues = [self.expectimax(moveDirection(board.copy()), False, 1) for moveDirection in legalMoves]
-        return legalMoves[moveValues.index(max(moveValues))]
+
+        if len(legalMoves) == 1:
+            return legalMoves[0]
+        if hashedBoard:=gb.hashInt(board) in self.movesDict.keys():
+            return self.movesDict[hashedBoard]
+        moveValues = [self.expectimax(moveDirection(np.copy(board)), False, 1) for moveDirection in legalMoves]
+        self.movesDict[hashedBoard] = legalMoves[moveValues.index(max(moveValues))]
+        return self.movesDict[hashedBoard]
     
-    def expectimax(self, board, maxPlayer, curDepth):
-        legalMoves = getLegalMoves(board)
-        if len(legalMoves) == 0:
-            return float("-inf")
-        hashedBoard = tuple(board)
+
+
+
+    def expectimax(self, board, maxPlayer:bool, curDepth) -> float:
+        #print("Expectimax at depth ", curDepth)
+        time0 = time.time()
         if curDepth > self.maxDepth:
-            self.memo[hashedBoard] = self.evaluationFunction(board)
-            return self.memo[hashedBoard]
-        if hashedBoard in self.memo.keys():
-            return self.memo[hashedBoard]
-        if not maxPlayer:
-            emptyTiles = gb.emptyIndices(board)
-            if int(self.newTileFrac*len(emptyTiles)) > 0:
-                newTileIndices = random.sample(emptyTiles, int(self.newTileFrac*len(emptyTiles)))
-                boardValue = 0
-                for tileIdx in newTileIndices:
-                    newBoard2 = board.copy()
-                    newBoard4 = board.copy()
-                    newBoard2[tileIdx] = 2
-                    newBoard4[tileIdx] = 4
-                    if tuple(newBoard2) in self.memo.keys():
-                        boardValue += 0.9*self.memo[tuple(newBoard2)]
-                    else:
-                        boardValue += 0.9*self.expectimax(newBoard2.copy(), True, curDepth)
-                    if tuple(newBoard4) in self.memo.keys():
-                        boardValue += 0.1*self.memo[tuple(newBoard4)]
-                    else:
-                        boardValue += 0.1 * self.expectimax(newBoard4.copy(), True, curDepth)
-                self.memo[hashedBoard] = boardValue / len(newTileIndices)
-                return self.memo[hashedBoard]
-        movedBoardValues = [self.expectimax(moveFunction(board.copy()), False, curDepth+1) for moveFunction in legalMoves]
-        self.memo[hashedBoard] = max(movedBoardValues)
-        return self.memo[hashedBoard]
+            
+            if hashedBoard:=gb.hashInt(board) in self.hashesDict.keys():
+                #print("maxDepth in dict: ", time.time()-time0)
+                return self.hashesDict[hashedBoard]
+            else:
+                self.hashesDict[hashedBoard] = self.evaluationFunction(board)
+                #print("maxDepth evalued: ", time.time()-time0)
+                return self.hashesDict[hashedBoard]
+        if np.count_nonzero(board) < 16 and not maxPlayer:
+            numNewTiles = np.min([int(self.newTileFrac*np.count_nonzero(board==0)), self.newTileMax])
+            if numNewTiles > 0:
+                newTileIndices = rand.choice(np.argwhere(board == 0), size=numNewTiles, replace=False)
+                boardValueSum = 0
+                for row,col in newTileIndices:
+                    newBoard2 = np.array(board)
+                    newBoard2[row,col] = 2
+                    boardValueSum += 0.9*self.expectimax(newBoard2, True, curDepth)
+                    newBoard4 = np.array(board)
+                    newBoard4[row,col] = 4
+                    boardValueSum += 0.1 * self.expectimax(newBoard4, True, curDepth)
+                #print("expectation calced: ", time.time()-time0)
+                return boardValueSum / newTileIndices.shape[0]
+        legalMoves = getLegalMoves(board)
+        if len(legalMoves) == 0: 
+            #print("no moves for maxPlayer: ", time.time()-time0)
+            return -1000
+        movedBoardValues = [self.expectimax(moveFunction(np.array(board)), False, curDepth+1) for moveFunction in legalMoves]
+        #print("maxPlayer calced: ", time.time()-time0)
+        return max(movedBoardValues)
 
-   
-    
-class PeacefulSearch(Search):
+class ExpectimaxAlphaSearch(Search):
 
-    def __init__(self, evaluationFunction=None, maxDepth=3):
+    def __init__(self, evaluationFunction=ef.defaultEval, maxDepth=3, newTileFrac=1, newTileMax=15):
         self.evaluationFunction = evaluationFunction
         self.maxDepth = maxDepth
-        self.memo = dict()
+        self.newTileFrac = newTileFrac
+        self.newTileMax = newTileMax
+        self.movesDict = dict()
+        self.hashesDict = dict()
+        self.rand = np.random.default_rng()
 
     def __str__(self):
-        return 'Peaceful Search'
+        return 'Expectimax Alpha Search'
 
-    def getMove(self, board):
-        legalMoves = getLegalMoves(board)
-        if len(legalMoves) > 0:
-            movedBoardValues = [self.search(moveFunction(board.copy()), 1) for moveFunction in legalMoves]
-            return legalMoves[movedBoardValues.index(max(movedBoardValues))]
+    def getMove(self, board, legalMoves):
 
-    def search(self, board, curDepth):
-        legalMoves = getLegalMoves(board)
-        if len(legalMoves) == 0:
-            return 0
-        
-        hashedBoard = tuple(board)
-        if curDepth > self.maxDepth:
-            self.memo[hashedBoard] = self.evaluationFunction(board)
-            return self.memo[hashedBoard]
+        if len(legalMoves) == 1:
+            return legalMoves[0]
+        if gb.hashInt(board) in self.movesDict.keys():
+            return self.movesDict[gb.hashInt(board)]
+        moveValues = [self.expectimaxAlpha(moveDirection(np.copy(board)), False, 1, -100) for moveDirection in legalMoves]
+        self.movesDict[gb.hashInt(board)] = legalMoves[moveValues.index(max(moveValues))]
 
-        if hashedBoard in self.memo.keys():
-            return self.memo[hashedBoard]
-        
-        movedBoardValues = [self.search(moveFunction(board.copy()), curDepth+1) for moveFunction in legalMoves]
-        self.memo[hashedBoard] = sum(movedBoardValues)/len(legalMoves)
-        return self.memo[hashedBoard]
+        return self.movesDict[gb.hashInt(board)]
     
+    def expectimaxAlpha(self, board, maxPlayer:bool, curDepth, alpha:float) -> float:
+
+        #print("Expectimax at depth ", curDepth)
+        if curDepth > self.maxDepth:
+            hashedBoard = gb.hashInt(board)
+            if hashedBoard in self.hashesDict.keys():
+                return self.hashesDict[hashedBoard]
+            else:
+                self.hashesDict[hashedBoard] = self.evaluationFunction(board)
+                return self.hashesDict[hashedBoard]
+        if np.count_nonzero(board) < 16 and not maxPlayer:
+            numNewTiles = np.min([int(self.newTileFrac*np.count_nonzero(board==0)), self.newTileMax])
+            if numNewTiles > 0:
+                newTileIndices = self.rand.choice(np.argwhere(board == 0), size=numNewTiles, replace=False)
+                boardValueSum = 0
+                for i in range(len(newTileIndices)):
+                    row, col = newTileIndices[i]
+                    newBoard2 = npCopy(board)
+                    newBoard2[row,col] = 2
+                    boardValueSum += 0.9*self.expectimaxAlpha(newBoard2, True, curDepth, float('-inf'))
+                    newBoard4 = npCopy(board)
+                    newBoard4[row,col] = 4
+                    boardValueSum += 0.1 * self.expectimaxAlpha(newBoard4, True, curDepth, float('-inf'))
+                    if alpha > (boardValueSum + 12*(len(newTileIndices)-i-1))/len(newTileIndices):
+                            return boardValueSum / (i+1)
+                return boardValueSum / newTileIndices.shape[0]
+        legalMoves = getLegalMoves(board)
+        if len(legalMoves) == 0: 
+            return -1000
+        for move in legalMoves:
+            v = self.expectimaxAlpha(move(npCopy(board)), False, curDepth+1, alpha)
+            alpha = max(alpha, v)
+        return alpha
+
+
+   

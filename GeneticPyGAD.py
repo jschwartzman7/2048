@@ -1,7 +1,4 @@
 import pygad
-import Simulations
-from EvaluationFunctions import EvaluationFunction
-import SearchAgents
 
 
 def fitnessFunction(gaInstance, parameters, solutionIdx): # parameters = [wLogMaxTile, wNumEmpty, wStd, wDistCenterCorner]

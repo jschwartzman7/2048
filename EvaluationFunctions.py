@@ -1,89 +1,77 @@
 import math
-import GameBoard2048 as gb
-import numpy as np
+from constants import snakePaths, cornerControl2, np
+#import constants
 
+'''
+'Evaluate relative value of board to its current tile set'
+bound [0, M]
+ef: R^16 -> R
+'''
+M=100
+def log2Board(board:np.ndarray) -> np.ndarray:
+    return np.log2(board, where=board>0)
 
-def defaultEval(board):
-    boardCenter = center(board)
-    return math.log2(max(board)) + len(gb.emptyIndices(board)) - standardDeviation(board, boardCenter) - distanceCenterCorner(boardCenter)
-
-def centerNumpy(board): # board is 2D numpy array
+def defaultEval(board) -> float:
     loggedBoard = np.log2(board, where=board>0)
-    return np.sum(loggedBoard*np.arange(4))/np.sum(loggedBoard), np.sum(np.transpose(loggedBoard)*np.arange(4))/np.sum(loggedBoard)
+    snake = snakeStrength(loggedBoard)
+    center = centerNumpy(loggedBoard)
+    std = standardDeviationNumpy(loggedBoard, center)
+    value = 2*(snake-np.count_nonzero(board)-std)
+    value = min(100, max(-100, value))
+    return value
 
-def center(board):
-    '''
-    log weighted average 2D position of board
-    range is (0, 0) to (3, 3)
-    '''
-    loggedBoard = [math.log2(board[i]) if board[i] > 0 else 0 for i in range(16)]
-    xyWeightedCords = [(loggedBoard[i]*gb.to2D(i)[0], loggedBoard[i]*gb.to2D(i)[1]) for i in range(16)]
-    xWeightedSum = sum([cord[0] for cord in xyWeightedCords])
-    yWeightedSum = sum([cord[1] for cord in xyWeightedCords])
-    return xWeightedSum/sum(loggedBoard), yWeightedSum/sum(loggedBoard)
+def highestPiece(logBoard: np.ndarray) -> float:
+    maxs = np.nonzero(logBoard==np.max(logBoard))
 
-def standardDeviationNumpy(board, center):
+    diff = 0
+    for i in range(len(maxs[0])):
+        x, y = maxs[0][i], maxs[1][i]
+        rows = [-1, 0, 1]
+        cols = [-1, 0, 1]
+        if x == 3:
+            rows = [-1, 0]
+        elif x == 0:
+            rows = [0, 1]
+        if y == 3:
+            cols = [-1, 0]
+        elif y == 0:
+            cols = [0, 1]
+        for row in rows:
+            for col in cols:
+                if logBoard[x+row, y+col] != 0 and (np.abs(row-col) == 1):
+                    diff += abs(logBoard[x, y] - logBoard[x+row, y+col])
+    return np.divide(1, diff/len(maxs[0]))
+
+
+def cornerSnakeStrength(logBoard: np.ndarray) -> float:
+    return np.mean([cornerStrength(logBoard), snakeStrength(logBoard)])
+
+
+def constantEvaluationFunction(board=None):
+    return 0
+
+def snakeStrength(logBoard: np.ndarray) -> float:
+    # relative strength of current board. 0 = worst, 1 = best
+    snakedBoards = np.apply_along_axis(lambda path: logBoard[tuple(path)], 1, snakePaths)
+    optimalBoard = np.flip(np.sort(logBoard.flatten()))
+    return np.max(np.apply_along_axis(lambda masked: np.dot(masked, optimalBoard), 1, snakedBoards))/np.sum(np.square(logBoard))
+   
+def cornerStrength(logBoard: np.ndarray) -> float:
+    optimalBoard = np.flip(np.sort(logBoard.flatten()))
+    optimalVector = np.array([optimalBoard[0], np.mean(optimalBoard[1:3]), np.mean(optimalBoard[3:6]), np.mean(optimalBoard[6:10]), np.mean(optimalBoard[10:13]), np.mean(optimalBoard[13:15]), optimalBoard[15]])
+    return np.max([np.dot(optimalVector, np.array([np.mean(logBoard[tuple(diag)]) for diag in corner])) for corner in cornerControl2])/np.dot(optimalVector, optimalVector)
+
+def centerNumpy(logBoard): # board is 2D numpy array
+    return np.sum(logBoard*np.arange(4))/np.sum(logBoard), np.sum(np.transpose(logBoard)*np.arange(4))/np.sum(logBoard)
+
+def standardDeviationNumpy(logBoard, center):
     '''
     standard deviation of log weighted board using getCenter as average
     range is 0 to x < uhh
     ''' 
-    loggedBoard = np.log2(board, where=board>0)
-    return np.sqrt(np.sum(loggedBoard*np.sum(np.square(np.flip(np.stack(np.indices((4, 4)),axis=-1),axis=-1)-center),axis=-1)))
+    return np.sqrt(np.sum(logBoard*np.sum(np.square(np.stack(np.indices((4, 4)),axis=-1)-center),axis=-1)))
     
 
-def standardDeviation(board, center):
-    '''
-    standard deviation of log weighted board using getCenter as average
-    range is 0 to x < uhh
-    ''' 
-    loggedBoard = [math.log2(board[i]) if board[i] > 0 else 0 for i in range(16)]
-    variance = sum([math.pow(math.dist(center, gb.to2D(i)), 2)*loggedBoard[i] if board[i] > 0 else 0 for i in range(16)])
-    return math.sqrt(variance)
-
-def distanceCenterCorner(center):
-    '''
-    Minimum distance from getCenter to a corner
-    '''
-    return transformDistanceCenterCorner(min([math.dist(center, corner) for corner in [(0, 0), (0, 3), (3, 0), (3, 3)]]))
-
-def transformDistanceCenterCorner(d):
-    return 5*d
-
-def transformStandardDeviation(sd):
-    return sd - 5
-
-class EvaluationFunction:
-
-    def __init__(self, parameters):
-        self.parameters = parameters
-
-    def evaluation(self, board):
-        return 0
-
-    def evaluateBoard(self, board):
-        boardCenter = center(board)
-        return np.dot([math.log2(max(board)), len([i for i in range(16) if board[i] == 0]), standardDeviation(board, boardCenter), distanceCenterCorner(boardCenter)], self.parameters)
-    
-    def maxTileEval(self, board):
-        return max(board)*self.parameters
-    
-    def numEmptyEval(self, board):
-        return len([i for i in range(16) if board[i] == 0])*self.parameters
-    
-    def standardDeviationEval(self, board):
-        return standardDeviation(board, center(board))*self.parameters
-    
-    def distCenterCornerEval(self, board):
-        return distanceCenterCorner(center(board))*self.parameters
-    
-
-'''board = gb.randomBoard()
-gb.printBoard(board)
-print("center: ", center(board))
-print("SD: ", standardDeviation(board, center(board)))
-print()
-print("NUMPY")
-numpyBoard = np.array(board).reshape(4, 4)
-print(numpyBoard)
-print("center: ", centerNumpy(numpyBoard))
-print("SD: ", standardDeviationNumpy(numpyBoard, centerNumpy(numpyBoard)))'''
+if __name__ == "__main__":
+    pass
+  
