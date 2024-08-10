@@ -1,5 +1,4 @@
-import math
-from constants import snakePaths, cornerControl2, np
+from Bot2048.constants import snakePaths, cornerControl2, np
 #import constants
 
 '''

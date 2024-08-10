@@ -1,7 +1,6 @@
-import evaluationFunctions as ef
-import gameBoard as gb
-from constants import rand, np
-import time
+import Bot2048.evaluationFunctions as ef
+import Bot2048.gameBoard as gb
+from Bot2048.constants import rand, np
 
 '''
     0  | 1  | 2  | 3
@@ -349,6 +348,8 @@ class MinimaxAlphaBeta(Search):
                 alpha = max(alpha, v)
             return alpha
 
+if __name__ == "__main__":
+    pass
 
 
    

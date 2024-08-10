@@ -1,26 +1,30 @@
 import time
-from constants import rand, np
-from gameBoard import randomStartingBoard, generatePiece, randomTestBoardWeighted
-from searchAgents import getLegalMoves, moveInDirection
+from Bot2048.constants import rand, np
+from Bot2048.gameBoard import randomStartingBoard, generatePiece, randomTestBoardWeighted
+from Bot2048.searchAgents import getLegalMoves, moveInDirection
 
 def simulateGame(agent):
     gameBoard = randomStartingBoard()
     legalMoves = getLegalMoves(gameBoard)
+    maxNow = gameBoard.max()
     while len(legalMoves) > 0:
         gameBoard = agent.getMove(gameBoard, legalMoves)(gameBoard)
         print("moved")
         gameBoard = generatePiece(gameBoard)
         legalMoves = getLegalMoves(gameBoard)
+    print("max first", maxNow)
     print("max tile", max(gameBoard.flatten()))
     return max(gameBoard.flatten())
 
 def simulateLateGame(agent):
     gameBoard = randomTestBoardWeighted(numFilled=12)
     legalMoves = getLegalMoves(gameBoard)
+    maxNow = gameBoard.max()
     while len(legalMoves) > 0:
         gameBoard = agent.getMove(gameBoard, legalMoves)(gameBoard)
         gameBoard = generatePiece(gameBoard)
         legalMoves = getLegalMoves(gameBoard)
+    print("max first", maxNow)
     print("max tile", max(gameBoard.flatten()))
     return max(gameBoard.flatten())
 

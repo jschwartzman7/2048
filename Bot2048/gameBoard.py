@@ -1,5 +1,5 @@
-from constants import maxExponent, primeBoard, rand, np
-from searchAgents import moves, stringToMove
+from Bot2048.constants import maxExponent, primeBoard, rand, np
+from Bot2048.searchAgents import moves, stringToMove
 
 def hashInt(board:np.ndarray) -> int:
     return np.prod(np.power(primeBoard, np.log2(board, where=board>0)))
@@ -39,3 +39,6 @@ def generatePiece(board:np.ndarray) -> np.ndarray:
         return board
     board[tuple(rand.choice(np.argwhere(board == 0)))] = rand.choice([2,4], p=[0.9,0.1])
     return board
+
+if __name__ == "__main__":
+    pass

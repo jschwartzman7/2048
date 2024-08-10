@@ -1,7 +1,7 @@
 import pygame as pg
-from gameBoard import randomStartingBoard, randomTestBoardWeighted, randomPositions, generatePiece
-from searchAgents import getLegalMoves, moveInDirection, canMoveInDirection, ExpectimaxAlpha
-from evaluationFunctions import snakeStrength, cornerStrength, cornerSnakeStrength, highestPiece
+from Bot2048.gameBoard import randomStartingBoard, randomTestBoardWeighted, randomPositions, generatePiece
+from Bot2048.searchAgents import getLegalMoves, moveInDirection, canMoveInDirection, ExpectimaxAlpha
+from Bot2048.evaluationFunctions import snakeStrength, cornerStrength, cornerSnakeStrength, highestPiece
 import numpy as np
 from constants import rand, tileValueColors
 

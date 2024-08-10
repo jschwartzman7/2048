@@ -1,9 +1,8 @@
 #import Simulations.gameBoard as gb
-from simulations import simulateGame, simulateLateGame, userPlayGame
-from gameBoard import randomStartingBoard, randomTestBoardWeighted, hashInt
-import searchAgents as sa
-import evaluationFunctions as ef
-from constants import snakePaths, testBoards, rand, np
+from Bot2048.simulations import simulateGame, simulateLateGame, userPlayGame
+from Bot2048.gameBoard import randomStartingBoard, randomTestBoardWeighted, hashInt
+import Bot2048.searchAgents as sa
+import Bot2048.evaluationFunctions as ef
 from Testing.moveTests import testMove
 from Testing.evaluationTests import testEvalutaionFunctions
 
