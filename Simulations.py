@@ -1,12 +1,11 @@
 import time
 from constants import rand, np
-from gameBoard import randomStartingBoard, generatePiece
+from gameBoard import randomStartingBoard, generatePiece, randomTestBoardWeighted
 from searchAgents import getLegalMoves, moveInDirection
 
 def simulateGame(agent):
     gameBoard = randomStartingBoard()
     legalMoves = getLegalMoves(gameBoard)
-    time0 = time.time()
     while len(legalMoves) > 0:
         gameBoard = agent.getMove(gameBoard, legalMoves)(gameBoard)
         print("moved")
@@ -14,6 +13,17 @@ def simulateGame(agent):
         legalMoves = getLegalMoves(gameBoard)
     print("max tile", max(gameBoard.flatten()))
     return max(gameBoard.flatten())
+
+def simulateLateGame(agent):
+    gameBoard = randomTestBoardWeighted(numFilled=12)
+    legalMoves = getLegalMoves(gameBoard)
+    while len(legalMoves) > 0:
+        gameBoard = agent.getMove(gameBoard, legalMoves)(gameBoard)
+        gameBoard = generatePiece(gameBoard)
+        legalMoves = getLegalMoves(gameBoard)
+    print("max tile", max(gameBoard.flatten()))
+    return max(gameBoard.flatten())
+
 
 def scoreAgent(agent, numRounds):
     maxTiles = []

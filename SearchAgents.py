@@ -105,7 +105,6 @@ def filterTileIndices(emptyIndices:np.ndarray) -> tuple:
     emptyYCounts = {y: np.count_nonzero(emptyIndices[:,1]==y) for y in np.unique(emptyIndices[:,1])}
     uniqueEmptyIndices = [v for v in emptyIndices if emptyXCounts[v[0]] == 1 and emptyYCounts[v[1]] == 1]
     selectedIndices = [[v[0] for v in uniqueEmptyIndices],[v[1] for v in uniqueEmptyIndices]]
-    print("initially selected: ", selectedIndices)
     missingRows = np.setdiff1d(emptyIndices[:,0], selectedIndices[0])
     missingColumns = np.setdiff1d(emptyIndices[:,1], selectedIndices[1])
     while missingRows.size > 0 or missingColumns.size > 0:
@@ -135,8 +134,7 @@ def filterTileIndices(emptyIndices:np.ndarray) -> tuple:
         missingColumns = np.setdiff1d(missingColumns, selectedIndices[1])
     return selectedIndices
 
-
-class Search:
+class Agent:
     
     def getMove(self, board, legalMoves):
         return
@@ -145,40 +143,37 @@ class Search:
         return
         
 
-class RandomSearch(Search):
+class Random(Agent):
 
     def __str__(self):
         return 'Random Search'
 
     def getMove(self, board, legalMoves):
         if len(legalMoves) > 0:
-            return legalMoves[random.randint(0, len(legalMoves)-1)]
+            return legalMoves[rand.integers(0, len(legalMoves))]
         
     def testMove(self, board, legalMoves):
         print("Initial Board:")
         print(board)
-        legalMoves = self.getLegalMoves(board)
         if len(legalMoves) > 0:
-            print("Returned move: ", moveToString[legalMoves[random.randint(0, len(legalMoves)-1)]])
+            print("Returned move: ", legalMoves[rand.integers(0, len(legalMoves))].__name__)
         
-class BasicSearch(Search):
+class Priority(Agent):
 
     def __str__(self):
         return 'Basic Search'
 
     def getMove(self, board, legalMoves):
-        legalMoves = self.getLegalMoves(board)
         if len(legalMoves) > 0:
             return legalMoves[0]
         
     def testMove(self, board, legalMoves):
         print("Initial Board:")
         print(board)
-        legalMoves = self.getLegalMoves(board)
         if len(legalMoves) > 0:
-            print("Returned move: ", moveToString[legalMoves[0]])
+            print("Returned move: ", legalMoves[0].__name__)
         
-class ReflexSearch(Search):
+class Reflex(Agent):
 
     def __init__(self, evaluationFunction=ef.defaultEval):
         self.evaluationFunction = evaluationFunction
@@ -189,7 +184,7 @@ class ReflexSearch(Search):
     def getMove(self, board, legalMoves):
         legalMoves = getLegalMoves(board)
         if len(legalMoves) > 0:
-            movedBoards = [moveFunction(board.copy()) for moveFunction in legalMoves]
+            movedBoards = [moveFunction(np.array(board)) for moveFunction in legalMoves]
             movedBoardValues = [self.evaluationFunction(board) for board in movedBoards]
             return legalMoves[movedBoardValues.index(max(movedBoardValues))]
         
@@ -208,40 +203,41 @@ class ReflexSearch(Search):
             movedBoardValues = [self.evaluationFunction(board) for board in movedBoards]
             print("Returned move: ", moveToString[legalMoves[movedBoardValues.index(max(movedBoardValues))]])
 
-class ExpectimaxSearch(Search):
+class Search(Agent):
 
-    def __init__(self, evaluationFunction=ef.defaultEval, maxDepth=3, newTileFrac=1, newTileMax=15):
+    def __init__(self, evaluationFunction, maxDepth=1):
         self.evaluationFunction = evaluationFunction
         self.maxDepth = maxDepth
-        self.newTileFrac = newTileFrac
-        self.newTileMax = newTileMax
         self.movesDict = dict()
         self.hashesDict = dict()
 
     def __str__(self):
-        return 'Expectimax Search'
-
+        return 'Search'
+    
     def getMove(self, board, legalMoves):
-        '''Expectimax with "Player" and "Chance" turns
-            Player can go Up, Down, Left, Right
-            Chance has 90% chance of spawning a 2 in a random unoccupied location and 10% chance of spawing a 4
-            legalMoves passed in is non-empty
-        '''
-
         if len(legalMoves) == 1:
             return legalMoves[0]
         if hashedBoard:=gb.hashInt(board) in self.movesDict.keys():
-            return self.movesDict[hashedBoard]
-        moveValues = [self.expectimax(moveDirection(np.copy(board)), False, 1) for moveDirection in legalMoves]
+            return self.movesDict[gb.hashInt(board)]
+        moveValues = [self.search(moveDirection(np.array(board)), False, 1) for moveDirection in legalMoves]
         self.movesDict[hashedBoard] = legalMoves[moveValues.index(max(moveValues))]
         return self.movesDict[hashedBoard]
     
+    def search(self) -> float:
+        pass
 
+class Expectimax(Search):
 
+    def __init__(self, evaluationFunction=ef.cornerSnakeStrength, maxDepth=1, newTileFrac=1, newTileMax=8):
+        super().__init__(evaluationFunction, maxDepth)
+        self.newTileFrac = newTileFrac
+        self.newTileMax = newTileMax
 
-    def expectimax(self, board, maxPlayer:bool, curDepth) -> float:
-        #print("Expectimax at depth ", curDepth)
-        time0 = time.time()
+    def __str__(self):
+        return 'Expectimax'
+    
+    def search(self, board, maxPlayer:bool, curDepth) -> float:
+        print("yeea")
         if curDepth > self.maxDepth:
             
             if hashedBoard:=gb.hashInt(board) in self.hashesDict.keys():
@@ -252,55 +248,39 @@ class ExpectimaxSearch(Search):
                 #print("maxDepth evalued: ", time.time()-time0)
                 return self.hashesDict[hashedBoard]
         if np.count_nonzero(board) < 16 and not maxPlayer:
-            numNewTiles = np.min([int(self.newTileFrac*np.count_nonzero(board==0)), self.newTileMax])
-            if numNewTiles > 0:
-                newTileIndices = rand.choice(np.argwhere(board == 0), size=numNewTiles, replace=False)
-                boardValueSum = 0
-                for row,col in newTileIndices:
-                    newBoard2 = np.array(board)
-                    newBoard2[row,col] = 2
-                    boardValueSum += 0.9*self.expectimax(newBoard2, True, curDepth)
-                    newBoard4 = np.array(board)
-                    newBoard4[row,col] = 4
-                    boardValueSum += 0.1 * self.expectimax(newBoard4, True, curDepth)
-                #print("expectation calced: ", time.time()-time0)
-                return boardValueSum / newTileIndices.shape[0]
+            newTilesX, newTilesY = filterTileIndices(np.argwhere(board == 0))
+            #numNewTiles = np.min([int(self.newTileFrac*np.count_nonzero(board==0)), self.newTileMax])
+            boardValueSum = 0
+            for i in range(len(newTilesX)):
+                newBoard2 = np.array(board)
+                newBoard2[newTilesX[i], newTilesY[i]] = 2
+                boardValueSum += 0.9*self.search(newBoard2, True, curDepth)
+                newBoard4 = np.array(board)
+                newBoard4[newTilesX[i], newTilesY[i]] = 4
+                boardValueSum += 0.1 * self.search(newBoard4, True, curDepth)
+            #print("expectation calced: ", time.time()-time0)
+            return boardValueSum / len(newTilesX)
         legalMoves = getLegalMoves(board)
         if len(legalMoves) == 0: 
             #print("no moves for maxPlayer: ", time.time()-time0)
-            return -1000
-        movedBoardValues = [self.expectimax(moveFunction(np.array(board)), False, curDepth+1) for moveFunction in legalMoves]
+            return 0
+        movedBoardValues = [self.search(moveFunction(np.array(board)), False, curDepth+1) for moveFunction in legalMoves]
         #print("maxPlayer calced: ", time.time()-time0)
         return max(movedBoardValues)
 
-class ExpectimaxAlphaSearch(Search):
+class ExpectimaxAlpha(Search):
 
-    def __init__(self, evaluationFunction=ef.defaultEval, maxDepth=3, newTileFrac=1, newTileMax=15):
-        self.evaluationFunction = evaluationFunction
-        self.maxDepth = maxDepth
+    def __init__(self, evaluationFunction=ef.cornerSnakeStrength, maxDepth=1, newTileFrac=1, newTileMax=8):
+        super().__init__(evaluationFunction, maxDepth)
         self.newTileFrac = newTileFrac
         self.newTileMax = newTileMax
-        self.movesDict = dict()
-        self.hashesDict = dict()
-        self.rand = np.random.default_rng()
 
     def __str__(self):
-        return 'Expectimax Alpha Search'
+        return 'Expectimax Alpha pruning'
 
-    def getMove(self, board, legalMoves):
+    def search(self, board, maxPlayer:bool, curDepth, alpha:float=float('-inf')) -> float:
 
-        if len(legalMoves) == 1:
-            return legalMoves[0]
-        if gb.hashInt(board) in self.movesDict.keys():
-            return self.movesDict[gb.hashInt(board)]
-        moveValues = [self.expectimaxAlpha(moveDirection(np.copy(board)), False, 1, -100) for moveDirection in legalMoves]
-        self.movesDict[gb.hashInt(board)] = legalMoves[moveValues.index(max(moveValues))]
-
-        return self.movesDict[gb.hashInt(board)]
-    
-    def expectimaxAlpha(self, board, maxPlayer:bool, curDepth, alpha:float) -> float:
-
-        #print("Expectimax at depth ", curDepth)
+        print("Expectimax at alpha ", alpha)
         if curDepth > self.maxDepth:
             hashedBoard = gb.hashInt(board)
             if hashedBoard in self.hashesDict.keys():
@@ -309,28 +289,67 @@ class ExpectimaxAlphaSearch(Search):
                 self.hashesDict[hashedBoard] = self.evaluationFunction(board)
                 return self.hashesDict[hashedBoard]
         if np.count_nonzero(board) < 16 and not maxPlayer:
-            numNewTiles = np.min([int(self.newTileFrac*np.count_nonzero(board==0)), self.newTileMax])
-            if numNewTiles > 0:
-                newTileIndices = self.rand.choice(np.argwhere(board == 0), size=numNewTiles, replace=False)
-                boardValueSum = 0
-                for i in range(len(newTileIndices)):
-                    row, col = newTileIndices[i]
-                    newBoard2 = npCopy(board)
-                    newBoard2[row,col] = 2
-                    boardValueSum += 0.9*self.expectimaxAlpha(newBoard2, True, curDepth, float('-inf'))
-                    newBoard4 = npCopy(board)
-                    newBoard4[row,col] = 4
-                    boardValueSum += 0.1 * self.expectimaxAlpha(newBoard4, True, curDepth, float('-inf'))
-                    if alpha > (boardValueSum + 12*(len(newTileIndices)-i-1))/len(newTileIndices):
-                            return boardValueSum / (i+1)
-                return boardValueSum / newTileIndices.shape[0]
+            newTilesX, newTilesY = filterTileIndices(np.argwhere(board == 0))
+            #numNewTiles = np.min([int(self.newTileFrac*np.count_nonzero(board==0)), self.newTileMax])
+            boardValueSum = 0
+            for i in range(len(newTilesX)):
+                newBoard2 = np.array(board)
+                newBoard2[newTilesX[i], newTilesY[i]] = 2
+                boardValueSum += 0.9*self.search(newBoard2, True, curDepth, float('-inf'))
+                newBoard4 = np.array(board)
+                newBoard4[newTilesX[i], newTilesY[i]] = 4
+                boardValueSum += 0.1 * self.search(newBoard4, True, curDepth, float('-inf'))
+                if alpha > (boardValueSum + 12*(len(newTilesX)-i-1))/len(newTilesX):
+                    return boardValueSum / (i+1)
+            return boardValueSum / len(newTilesX)
         legalMoves = getLegalMoves(board)
         if len(legalMoves) == 0: 
             return -1000
         for move in legalMoves:
-            v = self.expectimaxAlpha(move(npCopy(board)), False, curDepth+1, alpha)
+            v = self.search(move(board), False, curDepth+1, alpha)
             alpha = max(alpha, v)
         return alpha
 
+class MinimaxAlphaBeta(Search):
 
+    def __init__(self, evaluationFunction=ef.cornerSnakeStrength, maxDepth=1):
+        super().__init__(evaluationFunction, maxDepth)
+        
+    def __str__(self):
+        return 'Minimax Alpha Beta pruning'
+    
+    def search(self, board, maxPlayer:bool, curDepth, alpha:float=float('-inf'), beta:float=float('inf')) -> float:
+       
+        print("Minimax at depth ", curDepth, "with alpha: ", alpha, ", beta: ", beta)
+        if curDepth > self.maxDepth:
+            hashedBoard = gb.hashInt(board)
+            if hashedBoard in self.hashesDict.keys():
+                return self.hashesDict[hashedBoard]
+            else:
+                self.hashesDict[hashedBoard] = self.evaluationFunction(board)
+                return self.hashesDict[hashedBoard]
+        legalMoves = getLegalMoves(board)
+        if len(legalMoves) == 0: 
+            return 0
+        if not maxPlayer:
+            newTilesX, newTilesY = filterTileIndices(np.argwhere(board == 0))
+            for i in range(len(newTilesX)):
+                if beta < alpha:
+                    return beta
+                newBoard = np.array(board)
+                newBoard[newTilesX[i], newTilesY[i]] = 2
+                v = self.search(newBoard, True, curDepth, alpha, beta)
+                beta = min(beta, v)
+            return beta
+        else:
+            for move in legalMoves:
+                if alpha > beta:
+                    return alpha
+                v = self.search(move(np.array(board)), False, curDepth+1, alpha, beta)
+                alpha = max(alpha, v)
+            return alpha
+
+
+
+   
    

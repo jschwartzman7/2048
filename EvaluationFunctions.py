@@ -22,25 +22,16 @@ def defaultEval(board) -> float:
 
 def highestPiece(logBoard: np.ndarray) -> float:
     maxs = np.nonzero(logBoard==np.max(logBoard))
-
-    diff = 0
+    paddedBoard = np.pad(logBoard, 1)
+    minDifference = float('inf')
     for i in range(len(maxs[0])):
-        x, y = maxs[0][i], maxs[1][i]
-        rows = [-1, 0, 1]
-        cols = [-1, 0, 1]
-        if x == 3:
-            rows = [-1, 0]
-        elif x == 0:
-            rows = [0, 1]
-        if y == 3:
-            cols = [-1, 0]
-        elif y == 0:
-            cols = [0, 1]
-        for row in rows:
-            for col in cols:
-                if logBoard[x+row, y+col] != 0 and (np.abs(row-col) == 1):
-                    diff += abs(logBoard[x, y] - logBoard[x+row, y+col])
-    return np.divide(1, diff/len(maxs[0]))
+        diff = 0
+        x, y = maxs[0][i]+1, maxs[1][i]+1
+        for row, col in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            if paddedBoard[x+row, y+col] != 0:
+                diff += abs(paddedBoard[x, y] - paddedBoard[x+row, y+col])
+        minDifference = min(minDifference, diff)
+    return -minDifference
 
 
 def cornerSnakeStrength(logBoard: np.ndarray) -> float:
