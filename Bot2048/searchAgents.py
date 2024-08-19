@@ -1,6 +1,7 @@
 import Bot2048.evaluationFunctions as ef
-import Bot2048.gameBoard as gb
+from Bot2048.gameBoard import hashInt
 from Bot2048.constants import rand, np
+import time
 
 '''
     0  | 1  | 2  | 3
@@ -37,10 +38,11 @@ def moveLeft(board:np.ndarray) -> np.ndarray:
     return np.apply_along_axis(shiftedArray, 1, board)
 
 def shiftedArray(array:np.ndarray) -> np.ndarray:
-    ''' Applies a single swipe move to the 1D array'''
-    
+    ''' Returns a 1D array representing the input array after one swipe move'''
+    # allocate an array that will be returned shifted
     shiftedArray = array[array!=0]
-    if len(shiftedArray) == 0:
+
+    if shiftedArray.size == 0:
         return array
     mergedIndices = set()
     idx = 1
@@ -64,6 +66,8 @@ def shiftedArray(array:np.ndarray) -> np.ndarray:
 moves = [moveUp, moveDown, moveRight, moveLeft]
 
 stringToMove = {'down': {'move': moveDown, 'can': canMoveDown}, 'right': {'move': moveRight, 'can': canMoveRight}, 'left': {'move': moveLeft, 'can': canMoveLeft}, 'up': {'move': moveUp, 'can': canMoveUp}}
+
+
 
 def canMoveInDirection(directionInput:str, board:np.ndarray) -> bool:
     if directionInput in stringToMove:
@@ -134,131 +138,97 @@ def filterTileIndices(emptyIndices:np.ndarray) -> tuple:
     return selectedIndices
 
 class Agent:
+
+    def __str__(self):
+        return 'Abstract Agent'
     
     def getMove(self, board, legalMoves):
         return
     
-    def testMove(self, board, legalMoves):
-        return
-        
 
 class Random(Agent):
 
     def __str__(self):
-        return 'Random Search'
+        return 'Random Agent'
 
     def getMove(self, board, legalMoves):
-        if len(legalMoves) > 0:
-            return legalMoves[rand.integers(0, len(legalMoves))]
-        
-    def testMove(self, board, legalMoves):
-        print("Initial Board:")
-        print(board)
-        if len(legalMoves) > 0:
-            print("Returned move: ", legalMoves[rand.integers(0, len(legalMoves))].__name__)
+        return legalMoves[rand.integers(0, len(legalMoves))]
         
 class Priority(Agent):
 
     def __str__(self):
-        return 'Basic Search'
+        return 'Priority Agent'
 
     def getMove(self, board, legalMoves):
-        if len(legalMoves) > 0:
-            return legalMoves[0]
-        
-    def testMove(self, board, legalMoves):
-        print("Initial Board:")
-        print(board)
-        if len(legalMoves) > 0:
-            print("Returned move: ", legalMoves[0].__name__)
+        return legalMoves[0]
         
 class Reflex(Agent):
-
-    def __init__(self, evaluationFunction=ef.defaultEval):
+    
+    def __init__(self, evaluationFunction=ef.cornerStrength):
         self.evaluationFunction = evaluationFunction
 
     def __str__(self):
-        return 'Reflex Search'
+        return 'Reflex Agent'
 
     def getMove(self, board, legalMoves):
-        legalMoves = getLegalMoves(board)
-        if len(legalMoves) > 0:
-            movedBoards = [moveFunction(np.array(board)) for moveFunction in legalMoves]
-            movedBoardValues = [self.evaluationFunction(board) for board in movedBoards]
-            return legalMoves[movedBoardValues.index(max(movedBoardValues))]
-        
-    def testMove(self, board, legalMoves):
-        print("Initial Board:")
-        print(board)
-        legalMoves = getLegalMoves(board)
-        if len(legalMoves) > 0:
-            movedBoards = []
-            for move in legalMoves:
-                print("Just moved ", moveToString[move])
-                movedBoards.append(move(board.copy()))
-                print(movedBoards[-1])
-                print("Board Value = ", self.evaluationFunction(movedBoards[-1]))
-                print()
-            movedBoardValues = [self.evaluationFunction(board) for board in movedBoards]
-            print("Returned move: ", moveToString[legalMoves[movedBoardValues.index(max(movedBoardValues))]])
-
+        return legalMoves[np.argmax([self.evaluationFunction(moveFunction(board)) for moveFunction in legalMoves])]
+    
 class Search(Agent):
 
-    def __init__(self, evaluationFunction, maxDepth=1):
+    def __init__(self, evaluationFunction, maxDepth):
         self.evaluationFunction = evaluationFunction
         self.maxDepth = maxDepth
-        self.movesDict = dict()
-        self.hashesDict = dict()
+        self.calculatedMoves = dict()
+        self.hashedBoardEvaluations = dict()
 
     def __str__(self):
-        return 'Search'
+        return 'Base Search Agent'
     
     def getMove(self, board, legalMoves):
+        print("base agent getting move")
         if len(legalMoves) == 1:
             return legalMoves[0]
-        if hashedBoard:=gb.hashInt(board) in self.movesDict.keys():
-            return self.movesDict[gb.hashInt(board)]
-        moveValues = [self.search(moveDirection(np.array(board)), False, 1) for moveDirection in legalMoves]
-        self.movesDict[hashedBoard] = legalMoves[moveValues.index(max(moveValues))]
-        return self.movesDict[hashedBoard]
+        if hashedBoard:=hashInt(board) in self.calculatedMoves.keys():
+            return self.calculatedMoves[hashInt(board)]
+        moveValues = [self.search(moveDirection(board), False, 1) for moveDirection in legalMoves]
+        self.calculatedMoves[hashedBoard] = legalMoves[moveValues.index(max(moveValues))]
+        return self.calculatedMoves[hashedBoard]
     
     def search(self) -> float:
         pass
 
 class Expectimax(Search):
 
-    def __init__(self, evaluationFunction=ef.cornerSnakeStrength, maxDepth=1, newTileFrac=1, newTileMax=8):
+    def __init__(self, evaluationFunction=ef.cornerSnakeStrength, maxDepth=2, newTileFrac=1, newTileMax=16):
         super().__init__(evaluationFunction, maxDepth)
         self.newTileFrac = newTileFrac
         self.newTileMax = newTileMax
 
     def __str__(self):
-        return 'Expectimax'
+        return 'Expectimax Search Agent'
     
     def search(self, board, maxPlayer:bool, curDepth) -> float:
-        print("yeea")
         if curDepth > self.maxDepth:
             
-            if hashedBoard:=gb.hashInt(board) in self.hashesDict.keys():
+            if hashedBoard:=hashInt(board) in self.hashedBoardEvaluations.keys():
                 #print("maxDepth in dict: ", time.time()-time0)
-                return self.hashesDict[hashedBoard]
+                return self.hashedBoardEvaluations[hashedBoard]
             else:
-                self.hashesDict[hashedBoard] = self.evaluationFunction(board)
+                self.hashedBoardEvaluations[hashedBoard] = self.evaluationFunction(board)
                 #print("maxDepth evalued: ", time.time()-time0)
-                return self.hashesDict[hashedBoard]
+                return self.hashedBoardEvaluations[hashedBoard]
         if np.count_nonzero(board) < 16 and not maxPlayer:
             newTilesX, newTilesY = filterTileIndices(np.argwhere(board == 0))
             #numNewTiles = np.min([int(self.newTileFrac*np.count_nonzero(board==0)), self.newTileMax])
-            boardValueSum = 0
+            boardExpectedValue = 0
             for i in range(len(newTilesX)):
-                newBoard2 = np.array(board)
-                newBoard2[newTilesX[i], newTilesY[i]] = 2
-                boardValueSum += 0.9*self.search(newBoard2, True, curDepth)
-                newBoard4 = np.array(board)
-                newBoard4[newTilesX[i], newTilesY[i]] = 4
-                boardValueSum += 0.1 * self.search(newBoard4, True, curDepth)
+                board[newTilesX[i], newTilesY[i]] = 2
+                boardExpectedValue += 0.9*self.search(board, True, curDepth+1)
+                board[newTilesX[i], newTilesY[i]] = 4
+                boardExpectedValue += 0.1 * self.search(board, True, curDepth+1)
+                board[newTilesX[i], newTilesY[i]] = 0
             #print("expectation calced: ", time.time()-time0)
-            return boardValueSum / len(newTilesX)
+            return boardExpectedValue / len(newTilesX)
         legalMoves = getLegalMoves(board)
         if len(legalMoves) == 0: 
             #print("no moves for maxPlayer: ", time.time()-time0)
@@ -269,41 +239,39 @@ class Expectimax(Search):
 
 class ExpectimaxAlpha(Search):
 
-    def __init__(self, evaluationFunction=ef.cornerSnakeStrength, maxDepth=1, newTileFrac=1, newTileMax=8):
+    def __init__(self, evaluationFunction=ef.cornerSnakeStrength, maxDepth=2, newTileFrac=1, newTileMax=16):
         super().__init__(evaluationFunction, maxDepth)
         self.newTileFrac = newTileFrac
         self.newTileMax = newTileMax
 
     def __str__(self):
-        return 'Expectimax Alpha pruning'
+        return 'Expectimax Alpha Pruning Search Agent'
 
     def search(self, board, maxPlayer:bool, curDepth, alpha:float=float('-inf')) -> float:
-
-        print("Expectimax at alpha ", alpha)
         if curDepth > self.maxDepth:
-            hashedBoard = gb.hashInt(board)
-            if hashedBoard in self.hashesDict.keys():
-                return self.hashesDict[hashedBoard]
+            hashedBoard = hashInt(board)
+            if hashedBoard in self.hashedBoardEvaluations.keys():
+                return self.hashedBoardEvaluations[hashedBoard]
             else:
-                self.hashesDict[hashedBoard] = self.evaluationFunction(board)
-                return self.hashesDict[hashedBoard]
+                self.hashedBoardEvaluations[hashedBoard] = self.evaluationFunction(board)
+                return self.hashedBoardEvaluations[hashedBoard]
         if np.count_nonzero(board) < 16 and not maxPlayer:
             newTilesX, newTilesY = filterTileIndices(np.argwhere(board == 0))
             #numNewTiles = np.min([int(self.newTileFrac*np.count_nonzero(board==0)), self.newTileMax])
-            boardValueSum = 0
+            boardExpectedValue = 0
             for i in range(len(newTilesX)):
-                newBoard2 = np.array(board)
-                newBoard2[newTilesX[i], newTilesY[i]] = 2
-                boardValueSum += 0.9*self.search(newBoard2, True, curDepth, float('-inf'))
-                newBoard4 = np.array(board)
-                newBoard4[newTilesX[i], newTilesY[i]] = 4
-                boardValueSum += 0.1 * self.search(newBoard4, True, curDepth, float('-inf'))
-                if alpha > (boardValueSum + 12*(len(newTilesX)-i-1))/len(newTilesX):
-                    return boardValueSum / (i+1)
-            return boardValueSum / len(newTilesX)
+                board[newTilesX[i], newTilesY[i]] = 2
+                boardExpectedValue += 0.9*self.search(board, True, curDepth+1, float('-inf'))
+                board[newTilesX[i], newTilesY[i]] = 4
+                boardExpectedValue += 0.1 * self.search(board, True, curDepth+1, float('-inf'))
+                board[newTilesX[i], newTilesY[i]] = 0
+                # If the upper bound of final boardValueSum is less than alpha (current best move), return
+                if maxBvs:=(boardExpectedValue + ef.M*(len(newTilesX)-i-1))/len(newTilesX) < alpha:
+                    return maxBvs
+            return boardExpectedValue / len(newTilesX)
         legalMoves = getLegalMoves(board)
         if len(legalMoves) == 0: 
-            return -1000
+            return 0
         for move in legalMoves:
             v = self.search(move(board), False, curDepth+1, alpha)
             alpha = max(alpha, v)
@@ -311,22 +279,22 @@ class ExpectimaxAlpha(Search):
 
 class MinimaxAlphaBeta(Search):
 
-    def __init__(self, evaluationFunction=ef.cornerSnakeStrength, maxDepth=1):
+    def __init__(self, evaluationFunction=ef.cornerSnakeStrength, maxDepth=2):
         super().__init__(evaluationFunction, maxDepth)
         
     def __str__(self):
-        return 'Minimax Alpha Beta pruning'
+        return 'Minimax Alpha Beta Pruning Search Agent'
     
     def search(self, board, maxPlayer:bool, curDepth, alpha:float=float('-inf'), beta:float=float('inf')) -> float:
        
-        print("Minimax at depth ", curDepth, "with alpha: ", alpha, ", beta: ", beta)
+       # print("Minimax at depth ", curDepth, "with alpha: ", alpha, ", beta: ", beta)
         if curDepth > self.maxDepth:
-            hashedBoard = gb.hashInt(board)
-            if hashedBoard in self.hashesDict.keys():
-                return self.hashesDict[hashedBoard]
+            hashedBoard = hashInt(board)
+            if hashedBoard in self.hashedBoardEvaluations.keys():
+                return self.hashedBoardEvaluations[hashedBoard]
             else:
-                self.hashesDict[hashedBoard] = self.evaluationFunction(board)
-                return self.hashesDict[hashedBoard]
+                self.hashedBoardEvaluations[hashedBoard] = self.evaluationFunction(board)
+                return self.hashedBoardEvaluations[hashedBoard]
         legalMoves = getLegalMoves(board)
         if len(legalMoves) == 0: 
             return 0
@@ -337,7 +305,7 @@ class MinimaxAlphaBeta(Search):
                     return beta
                 newBoard = np.array(board)
                 newBoard[newTilesX[i], newTilesY[i]] = 2
-                v = self.search(newBoard, True, curDepth, alpha, beta)
+                v = self.search(newBoard, True, curDepth+1, alpha, beta)
                 beta = min(beta, v)
             return beta
         else:
@@ -347,9 +315,127 @@ class MinimaxAlphaBeta(Search):
                 v = self.search(move(np.array(board)), False, curDepth+1, alpha, beta)
                 alpha = max(alpha, v)
             return alpha
+        
+'''
+Expecti/Mini Max (ab pruning)
+    cost grows exponentially with tree depth
+    cannot visit all chance nodes up to depth in time
+    must filter tile indices to reduce branching factor
 
+
+
+MCTS
+    cost grows linearly with tree depth
+    random rollouts take advantage of chance nodes
+        no need to visit all chance nodes
+'''
+
+class GamestateNode():
+
+    nodeCount = 0
+
+    def __init__(self, board:np.ndarray, legalMoves, parent=None):
+        self.board = board
+        self.numVisits = 0
+        self.scoreSum = 0
+        self.parent = parent
+        self.children = {move : None for move in legalMoves}
+        self.id = GamestateNode.nodeCount
+        GamestateNode.nodeCount += 1
+
+    def calculateUCT(self, explorationConstant:float):
+        '''returns the UCT value of the node, assumes parent is not None'''
+        if self.numVisits == 0:
+            return float('inf')
+        return self.scoreSum/self.numVisits + explorationConstant*np.sqrt(np.log(self.parent.numVisits)/self.numVisits)
+
+    def getDepth(self):
+        if len(self.children) == 0 or all([child == None for child in self.children.values()]):
+            return 0
+        return 1 + max([child.getDepth() for child in self.children.values() if child != None])
+
+
+class MCTSAgent(Agent):
+    '''
+    Monte Carlo Tree Search Agent
+
+    Move stages:
+        s0 = current state, root of tree
+        traverse to a leaf node descendant s1 of s0 based on UCT bound
+        expand s1 by adding its successor state(s) c() to tree
+        perform rollouts from c(), keeping track of scores
+        backpropagate scores from c() up to root s0
+    '''
+
+    def __init__(self, explorationConstant=np.sqrt(2), moveTimeLimit=2):
+        self.explorationConstant = explorationConstant
+        self.timeToMove = moveTimeLimit
+        self.searchTreeRoots = []
+
+    def rollout(self, state:GamestateNode):
+        '''simulates a random game starting from 'state' and returns final score'''
+        rolloutBoard = np.array(state.board)
+        while len(legalMoves:=getLegalMoves(rolloutBoard)) > 0:
+            rolloutBoard = legalMoves[rand.integers(0, len(legalMoves))](rolloutBoard)
+            rolloutBoard[tuple(rand.choice(np.argwhere(rolloutBoard == 0)))] = rand.choice([2,4], p=[0.9,0.1])    
+        return rolloutBoard.max()
+    
+    def backPropagate(self, state:GamestateNode, score:int):
+        '''updates the scoreSum and numVisits fields of 'state' and all its ancestors'''
+        
+        curNode = state
+        while curNode != None:
+            curNode.numVisits += 1
+            curNode.scoreSum += score
+            curNode = curNode.parent
+
+    def getChild(self, state:GamestateNode, moveFunction):
+        '''generates a successor of state after moveFunction and a random new piece'''
+        (movedBoard:=moveFunction(state.board))[tuple(rand.choice(np.argwhere(movedBoard == 0)))] = rand.choice([2,4], p=[0.9,0.1])    
+        return GamestateNode(movedBoard, getLegalMoves(movedBoard), parent=state)
+
+    def getNewChildNode(self, state:GamestateNode):
+        curNode = state
+        while all([child != None for child in curNode.children.values()]) and len(curNode.children) > 0:
+            #curNode = sorted(curNode.children.values(), key=lambda child: child.calculateUCT(self.explorationConstant))[-1]
+            curNode = max([child for child in curNode.children.values()], key=lambda child: child.calculateUCT(self.explorationConstant))
+        if len(curNode.children) == 0:
+            return curNode
+        unexploredMoves = [move for move in curNode.children.keys() if curNode.children[move] == None]
+        curNode.children[move] = self.getChild(curNode, move:=rand.choice(unexploredMoves))
+        return curNode.children[move]
+       
+    def runMCTSonce(self, state:GamestateNode):
+        '''runs one iteration of MCTS from "state"'''
+
+        # add a node to tree representing unexplored state
+        newChildNode = self.getNewChildNode(state)
+
+        # perform a random simulation from the new node
+        rolloutResult = self.rollout(newChildNode)
+
+        # backpropagate the results up to the root's children
+        self.backPropagate(newChildNode, rolloutResult)
+
+
+    def getMove(self, board, legalMoves):
+        rootNode = GamestateNode(board, legalMoves)
+        numRollouts = 0
+        t0 = time.time()
+        while time.time()-t0 < self.timeToMove:
+            self.runMCTSonce(rootNode)
+            numRollouts += 1
+        print("numRollouts: ", numRollouts)
+        self.searchTreeRoots.append(rootNode)
+        return max([move for move in rootNode.children.keys() if rootNode.children[move] != None], key=lambda move: rootNode.children[move].numVisits)
+
+    def __str__(self):
+        return 'Monte Carlo Tree Search Agent'
+    
 if __name__ == "__main__":
     pass
+
+
 
 
    

@@ -10,27 +10,24 @@ M=100
 def log2Board(board:np.ndarray) -> np.ndarray:
     return np.log2(board, where=board>0)
 
+def geneticTrainingEval(board) -> float:
+    pass
+
 def defaultEval(board) -> float:
     loggedBoard = np.log2(board, where=board>0)
-    snake = snakeStrength(loggedBoard)
-    center = centerNumpy(loggedBoard)
-    std = standardDeviationNumpy(loggedBoard, center)
-    value = 2*(snake-np.count_nonzero(board)-std)
-    value = min(100, max(-100, value))
-    return value
+    css = cornerSnakeStrength(loggedBoard) #[0,1]
+    highestPiecePosition = highestPiece(loggedBoard) #[0,1]
+    empty = np.count_nonzero(board==0)/15 #[0,1]
+    
+    return [css, highestPiecePosition, empty]
 
 def highestPiece(logBoard: np.ndarray) -> float:
     maxs = np.nonzero(logBoard==np.max(logBoard))
     paddedBoard = np.pad(logBoard, 1)
-    minDifference = float('inf')
-    for i in range(len(maxs[0])):
-        diff = 0
-        x, y = maxs[0][i]+1, maxs[1][i]+1
-        for row, col in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
-            if paddedBoard[x+row, y+col] != 0:
-                diff += abs(paddedBoard[x, y] - paddedBoard[x+row, y+col])
-        minDifference = min(minDifference, diff)
-    return -minDifference
+    minDifference = np.min([np.min([logBoard[maxs[0][i], maxs[1][i]] - paddedBoard[maxs[0][i]+1+row, maxs[1][i]+1+col] if paddedBoard[maxs[0][i]+1+row, maxs[1][i]+1+col] != 0 and paddedBoard[maxs[0][i]+1+row, maxs[1][i]+1+col] != paddedBoard[maxs[0][i]+1, maxs[1][i]+1] else 0 for row, col in [(0, 1), (0, -1), (1, 0), (-1, 0)] ]) for i in range(len(maxs[0]))])
+    if minDifference == 0: return 1
+    # reciprocal of difference
+    return 1/minDifference
 
 
 def cornerSnakeStrength(logBoard: np.ndarray) -> float:
@@ -41,10 +38,9 @@ def constantEvaluationFunction(board=None):
     return 0
 
 def snakeStrength(logBoard: np.ndarray) -> float:
-    # relative strength of current board. 0 = worst, 1 = best
+    ''' snake correlation accuracy of current board. 0 = worst, 1 = best'''
     snakedBoards = np.apply_along_axis(lambda path: logBoard[tuple(path)], 1, snakePaths)
-    optimalBoard = np.flip(np.sort(logBoard.flatten()))
-    return np.max(np.apply_along_axis(lambda masked: np.dot(masked, optimalBoard), 1, snakedBoards))/np.sum(np.square(logBoard))
+    return np.max(np.apply_along_axis(lambda masked: np.dot(masked, np.flip(np.sort(logBoard.flatten()))), 1, snakedBoards))/np.sum(np.square(logBoard))
    
 def cornerStrength(logBoard: np.ndarray) -> float:
     optimalBoard = np.flip(np.sort(logBoard.flatten()))
@@ -61,6 +57,16 @@ def standardDeviationNumpy(logBoard, center):
     ''' 
     return np.sqrt(np.sum(logBoard*np.sum(np.square(np.stack(np.indices((4, 4)),axis=-1)-center),axis=-1)))
     
+
+class EvaluationFunction:
+    def __init__(self, evaluationParameters:np.ndarray):
+        self.evaluationParameters = evaluationParameters
+
+    def __str__(self):
+        return "EvaluationFunction"
+    
+    def evaluate(self, board):
+        return np.dot(self.evaluationParameters, defaultEval(board))
 
 if __name__ == "__main__":
     pass

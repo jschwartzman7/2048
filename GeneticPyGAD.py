@@ -1,16 +1,21 @@
 import pygad
+import Bot2048.searchAgents as sa
+import Bot2048.evaluationFunctions as ef
+from Bot2048.simulations import simulateLateGame, simulateGame
+import numpy as np
 
+agent = sa.Reflex(None)
 
-def fitnessFunction(gaInstance, parameters, solutionIdx): # parameters = [wLogMaxTile, wNumEmpty, wStd, wDistCenterCorner]
+def fitnessFunction(gaInstance, parameters, solutionIdx):
     '''
     agent(evaluationFunction(parameters))
     Run n 2048 game simulations with agent
     return avg MaxTile
     '''
-    evaluationFunction = EvaluationFunction(parameters)
-    agent = SearchAgents.ExpectimaxSearch(evaluationFunction.evaluateBoard, newTileFrac=0.3)
-    return Simulations.scoreAgent(agent, 5)
-
+    print("parameters", parameters)
+    agent.evaluationFunction.evaluationParameters = parameters
+    return np.median([simulateGame(agent) for i in range(5)])
+   
 
 
 
@@ -24,14 +29,14 @@ def begin(gad):
 numGenerations = 10
 numParentsMating = 3
 numSolutionsPerGeneration = 5
-solutionLength = 4
-initialParameterMin = -3
-initialParameterMax = 3
+solutionLength = 3
+initialParameterMin = -1
+initialParameterMax = 1
 numSolutionsRetainedPerGeneration = 4
 probabilityMutation = 0.35
 probabilityCrossover = 0.25
-mutationMinValue = -1.7
-mutationMaxVal = 1.7
+mutationMinValue = -.5
+mutationMaxVal = .5
 
 
 gaInstance = pygad.GA(num_generations=numGenerations,
@@ -54,11 +59,16 @@ gaInstance = pygad.GA(num_generations=numGenerations,
                       save_best_solutions=True,
                       save_solutions=True)
 
+
+print("BBB")
 gaInstance.run()
 solution, solution_fitness, solution_idx = gaInstance.best_solution()
 print(f"Parameters of the best solution : {solution}")
 print(f"Fitness value of the best solution = {solution_fitness}")
 print(f"Index of the best solution : {solution_idx}")
 gaInstance.plot_fitness()
+gaInstance.plot_new_solution_rate()
+gaInstance.plot_genes()
+
 
 #print(fitnessFunction(0, [1, 1], 0))
