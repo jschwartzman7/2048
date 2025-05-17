@@ -1,16 +1,26 @@
-from Bot2048.simulations import simulateGame, simulateLateGame, userPlayGame, assessAgent, userPlayGame, displayAgentAssessment
-from Bot2048.gameBoard import randomStartingBoard, randomTestBoardWeighted, hashInt
-import Bot2048.searchAgents as sa
-import Bot2048.evaluationFunctions as ef
-from Testing.moveTests import testMove
-from Testing.evaluationTests import testEvalutaionFunctions
+from agents.basicagents import Agent, Priority, Random
+import agents.searchagents as sa
+import agents.montecarloagents as ma
+import agents.montecarloagents as ma
+import game.boardnodes as nodes
+from game.gameboard import moveDown, moveUp, randomTestBoardWeighted, randomStartingBoard, log2Board
+import utils as utils
+from utils import testBoards
+import boardevaluation.evaluationfunctions as ef
+import game.simulations as sims
 import numpy as np
+from scoring import testBasicAgents, testSearchAgents, testMonteCarloAgents, testAllAgents, testAgents, displayAssessAgents
+import pygame as pg
+from pyGame.display import UserPlay2048, Display, Modes, EvaluationAnalysis, GameTree
+import agents.mlagents as ml
+import tests.boardmanipulationTests as boardTests
 
 
 def main():
-    #agents = [sa.MinimaxAlphaBeta(maxDepth=1)]
-    #displayAgentAssessment(agents, 1)
-    simulateGame(sa.MCTSAgent(moveTimeLimit=1))
+    agent = ma.MCTSAgent()
+    print(sims.simulateGame(agent))
     
+
+
 if __name__ == "__main__":
     main()
