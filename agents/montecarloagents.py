@@ -1,7 +1,7 @@
 import time
 from utils import rand
-from boardevaluation.evaluationfunctions import snakeStrength, emptyTiles
-from agents.searchagents import SearchAgent
+from boardevaluation.evaluationfunctions import snakeStrength, numEmpty
+from agents.searchagents import Search
 from game.gameboard import getLegalMoves, hashInt
 import game.boardnodes as nodes
 import numpy as np
@@ -11,10 +11,10 @@ MCTS
     random rollouts take advantage of chance nodes
         no need to visit all chance nodes
 '''
-class MonteCarlo(SearchAgent):
+class MonteCarlo(Search):
 
-    def __init__(self, evaluationFunction=emptyTiles, maxDepth=float('inf'), moveTimeLimit=0.1):
-        super().__init__(evaluationFunction, maxDepth, moveTimeLimit)
+    def __init__(self, maxDepth=float('inf'), moveTimeLimit=0.1):
+        super().__init__(maxDepth, moveTimeLimit)
 
     def __str__(self):
         return 'Abstract Monte Carlo Search Agent'
@@ -59,8 +59,8 @@ class MonteCarlo(SearchAgent):
 
 class PureMonteCarlo(MonteCarlo):
 
-    def __init__(self, evaluationFunction=snakeStrength, rolloutLength=float('inf'), maxNodeRollouts=float("inf"),  moveTimeLimit=0.03):
-        super().__init__(evaluationFunction, rolloutLength, moveTimeLimit)
+    def __init__(self, rolloutLength=float('inf'), maxNodeRollouts=float("inf"),  moveTimeLimit=0.03):
+        super().__init__(rolloutLength, moveTimeLimit)
         self.maxNodeRollouts = maxNodeRollouts
 
     def __str__(self):
@@ -88,8 +88,8 @@ class MCTSAgent(MonteCarlo):
         backpropagate scores from c() up to root s0
     '''
 
-    def __init__(self, evaluationFunction=snakeStrength, rolloutLength=float('inf'), explorationConstant=np.sqrt(2), moveTimeLimit=0.1):
-        super().__init__(evaluationFunction, rolloutLength, moveTimeLimit)
+    def __init__(self, rolloutLength=float('inf'), explorationConstant=np.sqrt(2), moveTimeLimit=0.1):
+        super().__init__(rolloutLength, moveTimeLimit)
         self.explorationConstant = explorationConstant
 
     def __str__(self):

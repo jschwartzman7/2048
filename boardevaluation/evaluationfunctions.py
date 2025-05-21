@@ -47,5 +47,11 @@ def highestPiece(board:np.ndarray) -> float:
     # reciprocal of difference
     return 1/minDifference
 
-def emptyTiles(board:np.ndarray) -> float:
+def numEmpty(board:np.ndarray) -> float:
     return board[board==0].size
+
+def highestTile(board:np.ndarray) -> float:
+    return np.max(board)
+
+def boardSum(board:np.ndarray) -> float:
+    return np.sum(board)

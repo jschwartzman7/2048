@@ -3,6 +3,24 @@ import boardevaluation.evaluationfunctions as ef
 
 
 class BoardEvaluator:
+
+    DEFAULT_EVALUATION_FUNCTION = ef.numEmpty
+
+    def __init__(self):
+        pass
+
+    def evaluate(self, board:np.ndarray) -> float:
+        return self.DEFAULT_EVALUATION_FUNCTION(board)
+
+class SingleFunctionEvaluator(BoardEvaluator):
+
+    def __init__(self, evaluationFuncion:callable):
+        self.evaluationFunction = evaluationFuncion
+
+    def evaluate(self, board:np.ndarray) -> float:
+        return self.evaluationFunction(board)
+
+class MultipleFunctionEvaluator(BoardEvaluator):
     
     def __init__(self, evaluationFunctions:list=[ef.snakeStrength, ef.cornerStrength, ef.surrounded, ef.tileCompactness]):
         self.evaluationFunctions:list[callable] = evaluationFunctions

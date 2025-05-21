@@ -6,6 +6,9 @@ class Agent:
     def __str__(self):
         return 'Abstract Agent'
     
+    def precompute(self):
+        pass
+
     def getMove(self, board:np.ndarray) -> callable:
         pass
     

@@ -2,7 +2,7 @@ from agents.basicagents import Agent, Random, Priority
 import agents.searchagents as sa
 import agents.montecarloagents as ma
 import boardevaluation.evaluationfunctions as ef
-from game.simulations import simulateGame
+from simulations import simulateGame
 import matplotlib.pyplot as plt
 import time
 import numpy as np

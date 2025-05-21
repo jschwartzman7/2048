@@ -11,7 +11,7 @@ class BoardNode():
     def __init__(self, board:np.ndarray=np.zeros((4,4))):
         self.board:np.ndarray = board
         self.value:float = 0
-        self.children:dict[callable:BoardNode] = dict()
+        self.children:dict[any:BoardNode] = dict()
         self.position:int = BoardNode.count
         BoardNode.count += 1
 
@@ -27,8 +27,8 @@ class BoardNode():
         ''' Fills self.children with ((x,y),tile) : Child pairs for each empty tile of self.board'''
         if(len(self.children) != 0):
             self.children = dict()
-        newTilesX, newTilesY = filterTileIndices(np.argwhere(self.board == 0))
-        #newTilesX, newTilesY = np.where(self.board == 0)
+        #newTilesX, newTilesY = filterTileIndices(np.argwhere(self.board == 0))
+        newTilesX, newTilesY = np.where(self.board == 0)
         for idx in range(len(newTilesX)):
             self.board[newTilesX[idx], newTilesY[idx]] = 2
             self.children[(newTilesX[idx], newTilesY[idx]),2] = BoardNode(self.board.copy())

@@ -2,9 +2,9 @@ import numpy as np
 import matplotlib as plt
 from sklearn.neighbors import KNeighborsClassifier
 from agents.basicagents import Agent
-from agents.searchagents import SearchAgent
+from agents.searchagents import Search
 import boardevaluation.evaluationfunctions as ef
-from game.simulations import simulateGame
+from simulations import simulateGame
 from skopt import gp_minimize
 from skopt.space import Real
 from skopt.plots import plot_convergence
@@ -66,7 +66,7 @@ class KnnAgent(Agent):
     Select coefficients that score the highest
 '''
 class ParameterTuner:
-    def __init__(self, agent:SearchAgent):
+    def __init__(self, agent:Search):
         self.evaluationFunctions = [ef.snakeStrength, ef.cornerStrength, ef.tileCompactness, ef.surrounded, ef.highestPiece]
         self.parameterRanges = [Real(-1,1) for function in self.evaluationFunctions]
         self.agent = agent

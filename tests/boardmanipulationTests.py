@@ -1,7 +1,9 @@
 import numpy as np
 from game.gameboard import log2Board
-from game.gameboard import moveUp, moveDown, moveLeft, moveRight
+from utils import testBoards
+from game.gameboard import moveUp, moveDown, moveLeft, moveRight, generatePiece
 
+#boards = testBoards
 boards = [
     np.array([[0, 0, 0, 0],
               [0, 0, 0, 0],
@@ -21,7 +23,19 @@ boards = [
     np.array([[0, 0, 0, 0],
               [0, 8, 8, 0],
               [0, 8, 8, 0],
-              [0, 0, 0, 0]])]
+              [0, 0, 0, 0]]),
+
+    np.array([[0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0]])]
+
+def testGeneratePiece():
+    for board in boards:
+        print("Testing")
+        print(board)
+        print("generated piece")
+        print(generatePiece(board))
 
 def testLog2():
     for board in boards:
@@ -66,6 +80,7 @@ def testMoves():
         
 def testAll():
     testLog2()
+    testGeneratePiece()
     testMoves()
     
 

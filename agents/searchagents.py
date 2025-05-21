@@ -15,24 +15,43 @@ Expecti/Mini Max (ab pruning)
 '''
 '''Search Agent base classes defining shared methods'''
 
-class SearchAgent(Agent):
+class Reflex(Agent):
 
-    def __init__(self, evaluationFunction=snakeStrength, maxDepth:int=3, moveTimeLimit:float=0.1):
+    def __init__(self, boardEvaluator:BoardEvaluator=None):
+        super().__init__()
         
-        # function to evaluate board value
-        self.evaluationFunction:BoardEvaluator = BoardEvaluator([evaluationFunction])
+        # evaluator to evaluate boards
+        self.boardEvaluator:BoardEvaluator = BoardEvaluator()
 
+        # boards encountered in other moves to avoid re-searching
+        self.calculatedMoves:dict[np.ndarray:callable] = dict()
+
+        # boards encountered in evaluation to avoid re-evaluating
+        self.hashedBoardEvaluations:dict[np.ndarray:float] = dict()
+
+    def getMove(self, board:np.ndarray) -> callable:
+        if (hashedBoard:=hashInt(board)) in self.calculatedMoves.keys():
+            return self.calculatedMoves[hashedBoard]
+        root:nodes.BoardNode = nodes.BoardNode(board)
+        root.fillMoveChildren()
+        for move in root.children.keys():
+            if (hashedChildBoard:=hashInt(move(root.board))) in self.hashedBoardEvaluations.keys():
+                root.children[move].value = self.hashedBoardEvaluations[hashedChildBoard]
+            else:
+                root.children[move].value = self.boardEvaluator.evaluate(move(root.board)) 
+        self.calculatedMoves[hashedBoard] = max(root.children, key=lambda move: root.children[move].value)
+        return self.calculatedMoves[hashedBoard]
+
+class Search(Reflex):
+
+    def __init__(self, maxDepth:int=3, moveTimeLimit:float=0.1):
+        super().__init__()
+        
         # max search depth / rollout length
         self.maxDepth:int = maxDepth
 
         # time limit for each move
         self.timeToMove:float = moveTimeLimit
-
-        # boards encountered in other moves to avoid re-searching
-        self.calculatedMoves:dict[np.ndarray:callable] = dict()
-
-        # boards encountered in other moves/search to avoid re-evaluating
-        self.hashedBoardEvaluations:dict[np.ndarray:float] = dict()
 
     def __str__(self):
         return 'Abstract Search Agent'
@@ -62,7 +81,7 @@ class SearchAgent(Agent):
         '''call this at beginning of child().search'''
         if curDepth > self.maxDepth:
             if (hashedBoard := hashInt(board.board)) not in self.hashedBoardEvaluations:
-                self.hashedBoardEvaluations[hashedBoard] = self.evaluationFunction.evaluate(board.board)
+                self.hashedBoardEvaluations[hashedBoard] = self.boardEvaluator.evaluate(board.board)
             return self.hashedBoardEvaluations[hashedBoard]
         else:
             return None
@@ -79,37 +98,19 @@ class SearchAgent(Agent):
         
 '''Expectimax and Minimax agents'''
 
-class Reflex(SearchAgent):
-    
-    def __init__(self, evaluationFunction=snakeStrength):
-        super().__init__(evaluationFunction, 1)
+class Expectimax(Search):
+
+    def __init__(self):
+        super().__init__()
 
     def __str__(self):
-        return 'Reflex Search with ' + self.evaluationFunction.__str__()
-
-    def runSearch(self, boardnode):
-        self.search(boardnode)
-        return boardnode
-
-
-    def search(self, boardnode:nodes.BoardNode) -> float:
-        boardnode.fillMoveChildren()
-        for move in boardnode.children.keys():
-            boardnode.children[move].value = self.evaluationFunction.evaluate(move(boardnode.board))    
-
-class Expectimax(SearchAgent):
-
-    def __init__(self, evaluationFunction=snakeStrength, maxDepth=3, moveTimeLimit=0.1):
-        super().__init__(evaluationFunction, maxDepth, moveTimeLimit)
-
-    def __str__(self):
-        return 'Expectimax Search with ' + self.evaluationFunction.__str__()
+        return 'Expectimax Search with ' + self.boardEvaluator.__str__()
     
     def runSearch(self, boardnode):
         return self.iterativeDeepeningSearch(boardnode)
 
     def search(self, board: nodes.BoardNode, curDepth: int) -> float:
-        if (boardValue:=super().preSearch(board, curDepth)) is not None:
+        if (boardValue:=self.preSearch(board, curDepth)) is not None:
             return boardValue
         if(curDepth % 2 == 0): # max player
             board.fillMoveChildren()
@@ -132,13 +133,13 @@ class Expectimax(SearchAgent):
                     boardExpectedValue += 0.1 * child.value
             return 2*boardExpectedValue / len(board.children) 
         
-class ExpectimaxAlpha(SearchAgent):
+class ExpectimaxAlpha(Search):
 
-    def __init__(self, evaluationFunction=snakeStrength, maxDepth=3, moveTimeLimit=0.1):
-        super().__init__(evaluationFunction, maxDepth, moveTimeLimit)
+    def __init__(self, maxDepth=3, moveTimeLimit=0.1):
+        super().__init__(maxDepth, moveTimeLimit)
 
     def __str__(self):
-        return 'Expectimax Alpha Pruning Search with ', self.evaluationFunction
+        return 'Expectimax Alpha Pruning Search with ', self.boardEvaluator.__str__
     
     def runSearch(self, boardnode):
         return self.iterativeDeepeningSearch(boardnode)
@@ -170,16 +171,16 @@ class ExpectimaxAlpha(SearchAgent):
                     boardExpectedValue += 0.1 * item[1].value
             return 2*boardExpectedValue / len(board.children)
 
-class MinimaxAlphaBeta(SearchAgent):
+class MinimaxAlphaBeta(Search):
 
-    def runSearch(self, boardnode):
-        return self.iterativeDeepeningSearch(boardnode)
-
-    def __init__(self, evaluationFunction=snakeStrength, maxDepth=2, moveTimeLimit=0.1):
-        super().__init__(evaluationFunction, maxDepth, moveTimeLimit)
+    def __init__(self, maxDepth=2, moveTimeLimit=0.1):
+        super().__init__(maxDepth, moveTimeLimit)
         
     def __str__(self):
-        return 'Minimax Alpha Beta Pruning Search with ', self.evaluationFunction
+        return 'Minimax Alpha Beta Pruning Search with ', self.boardEvaluator.__str__
+    
+    def runSearch(self, boardnode):
+        return self.iterativeDeepeningSearch(boardnode)
     
     def search(self, board:nodes.BoardNode, curDepth:int, alpha:float=float('-inf'), beta:float=float('inf')):
         if (boardValue:=super().preSearch(board, curDepth)) is not None:
