@@ -1,1 +1,2 @@
-2048 playing bot that uses AI and ML ideas.  Developed training methods and game simulation.
+2048 playing environment for AI and ML bot purposes. Uses PyGame for display of 2048 game and Matplotlib for statistical analysis.
+
